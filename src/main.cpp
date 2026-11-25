@@ -29,7 +29,7 @@ namespace
 
     bool hasAssets(const wchar_t* dir)
     {
-        if (!hasAssetFile(dir, Config::WITCH_MODEL_PATH))
+        if (!hasAssetFile(dir, Config::WITCH_MODEL_PATH) || !hasAssetFile(dir, Config::BUTTERFLY_MODEL_PATH))
         {
             return false;
         }

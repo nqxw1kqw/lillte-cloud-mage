@@ -44,6 +44,7 @@ public:
     void drawQuitConfirmMessage();
     void drawWindLesson(const Player& player, const CloudField& clouds, int targetId, bool pulling);
     void drawWonMessage(bool canRestart);
+    void drawJumpGuide(const Player& player, const LandingMarker& marker);
 
 private:
     // Đỉnh của sao dùng kiểu VERTEX3D của DxLib; giấu trong Render.cpp để
@@ -51,6 +52,8 @@ private:
     struct StarBatch;
     struct WitchRun;
     struct CloudPuffMesh;
+    struct EnvironmentScene;
+    struct CloudSurfaceMesh;
 
     bool loadModels(CloudField& clouds);
     bool loadCloudSurface(int model, CloudField& clouds, size_t variant);
@@ -58,13 +61,21 @@ private:
     int createFont(const wchar_t* face, int size, int thick);
     void drawEnvironment(const Vec3& playerPos, const Camera& camera);
     void drawStars(const Vec3& playerPos, const Camera& camera);
-    void initCloudPuffs(const CloudField& clouds);
+    void initEnvironmentScene();
+    void drawEnvironmentScene(const CloudField& clouds, const Player& player, const Camera& camera);
+    void initCloudPuffs(CloudField& clouds);
+    void initCloudSurfaceMesh(const CloudField& clouds);
     void drawCloudPuffs(const Vec3& p, size_t variant);
-    void drawClouds(const CloudField& clouds);
+    void drawClouds(const CloudField& clouds, const Vec3& playerPos);
     void drawSceneryClouds(const CloudField& clouds, const Camera& camera, bool transparent);
     // Đĩa bán trong suốt trên mặt mây sẽ đáp, chỉ vẽ khi marker.visible.
     void drawLandingMarker(const LandingMarker& marker);
     void drawWitch(const Player& player);
+    bool loadButterfly();
+    void drawButterflies(const CloudField& clouds, const Vec3& playerPos);
+    void drawMothRegion(const CloudField& clouds, const Player& player);
+    bool tintButterfly(int model, const Config::RgbF& color, float emission);
+    Config::RgbF rareButterflyColor(double time, int key) const;
     void updateRunPose(float runTime);
     void drawCenterLines(const wchar_t* const* lines, const int* fonts, int lineCount,
                          int centerY = Config::WINDOW_H / 2);
@@ -75,6 +86,10 @@ private:
     // Cấp phát một lần khi khởi tạo, dùng lại mọi khung.
     std::unique_ptr<StarBatch> starBatch_;
     std::unique_ptr<CloudPuffMesh> cloudPuffs_;
+    std::unique_ptr<CloudSurfaceMesh> cloudSurfaceMesh_;
+    std::unique_ptr<EnvironmentScene> environmentScene_;
+    std::array<Vec3, Config::ENVIRONMENT_SITES.size()> environmentCenters_{};
+    std::array<bool, Config::ENVIRONMENT_SITES.size()> environmentVisible_{};
     // Cạnh sao theo đơn vị thế giới, tính một lần trong init từ STAR_POINT_SIZE_THREE.
     float starWorldSize_ = 0.0f;
     // Số font đã nạp riêng từ assets/fonts, để gỡ ra khi thoát.
@@ -89,6 +104,13 @@ private:
     int fontMsgSmall_ = -1;
     int fillLight_ = -1;
     int witchModel_ = -1;
+    int butterflyModel_ = -1;
+    int butterflyClip_ = -1;
+    int mothModel_ = -1;
+    int mothClip_ = -1;
+    std::array<int, Config::BUTTERFLY_PALETTES.size()> butterflyPaletteModels_{};
+    std::array<int, Config::BUTTERFLY_PALETTES.size()> butterflyPaletteClips_{};
+    float butterflyClipTicks_ = 0.0f;
     std::unique_ptr<WitchRun> witchRun_;
     std::array<int, Config::CLOUD_MODELS.size()> cloudModels_{};
     struct WitchClip { int handle = -1; float frames = 0.0f; };

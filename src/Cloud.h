@@ -15,31 +15,34 @@ struct CloudContact
     Vec3 platformShift{};
 };
 
-// Lưới mặt trên dùng chung cho tất cả mây vẽ bằng cùng một model.
+// Độ cao bám theo mái model; vùng bao ngoài lấp các khe nhỏ để mép mây an toàn.
 class CloudSurface
 {
 public:
     void addTriangle(const Vec3& a, const Vec3& b, const Vec3& c);
+    void addPoint(const Vec3& point) { footprint_.push_back(point); }
+    void buildFootprint();
+    void bakeHeightfield();
     bool cross(const Vec3& from, const Vec3& to, CloudContact& contact) const;
     bool roofHeight(float x, float z, float& height) const;
+    float surfaceHeight(float x, float z) const { return sampledHeight(x,z); }
+    const std::vector<Vec3>& outline() const { return footprint_; }
 
 private:
-    struct Triangle
+    bool contains(float x, float z) const;
+    float sourceHeight(float x, float z) const;
+    bool meshHeight(float x, float z, float& height) const;
+    float sampledHeight(float x, float z) const;
+    struct RoofTriangle
     {
-        Vec3 a;
-        Vec3 b;
-        Vec3 c;
-        float determinant;
-        float slopeX;
-        float slopeZ;
-
-        float heightAt(float x, float z) const;
-        bool contains(float x, float z) const;
+        Vec3 a,b,c;
+        float determinant,slopeX,slopeZ;
+        float minX,maxX,minZ,maxZ;
     };
-
-    bool isExposed(const Vec3& point) const;
-
-    std::vector<Triangle> triangles_;
+    std::vector<RoofTriangle> roof_;
+    std::array<float,Config::CLOUD_HEIGHT_COLS*Config::CLOUD_HEIGHT_ROWS> heights_{};
+    bool baked_ = false;
+    std::vector<Vec3> footprint_;
 };
 
 struct Cloud
@@ -60,7 +63,7 @@ struct Cloud
 class CloudField
 {
 public:
-    void reset();
+    void reset(unsigned int seed = 0);
     void extend(float playerZ);
     void advance(float dt);
     double time() const { return time_; }

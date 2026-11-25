@@ -53,6 +53,8 @@ void Player::reset(float top)
     jumpBuffer_ = 0.0f;
     bufferedDirection_ = {};
     bounces_ = 0;
+    jumpsUsed_ = 0;
+    sprintHeld_ = false;
     supportId_ = 0;
     grounded_ = true;
     atSea_ = false;
@@ -76,41 +78,72 @@ void Player::walk(float dt, const Vec3& direction, float turn, const CloudField&
     }
 
     yaw_ = std::atan2(direction.x, direction.z);
-    groundSpeed_ = std::min(Config::GROUND_MOVE_SPEED, groundSpeed_ + Config::GROUND_ACCELERATION * dt);
+    const float maxSpeed = sprintHeld_ ? Config::SPRINT_MOVE_SPEED : Config::GROUND_MOVE_SPEED;
+    groundSpeed_ = std::min(maxSpeed, groundSpeed_ + Config::GROUND_ACCELERATION * dt);
     const float distance = groundSpeed_ * dt;
-    const float step = distance / length;
-    const float x = pos_.x + direction.x * step;
-    const float z = pos_.z + direction.z * step;
-    float y = 0.0f;
-    // Dừng ở mép mây để người chơi có thể chỉnh hướng trước khi bật nhảy.
-    if (clouds.supportAt(supportId_, x, z, y) && std::abs(y - pos_.y) <= Config::GROUND_STEP_HEIGHT)
+    float fraction = 1.0f;
+    // Chia nhỏ bước ở sườn dốc để đi tiếp được, không nhảy cóc độ cao hoặc kẹt tại chỗ.
+    for (int attempt=0;attempt<Config::GROUND_FOOTING_SUBSTEPS;++attempt)
     {
-        pos_ = {x, y, z};
-        runTime_ += dt * groundSpeed_ / Config::GROUND_MOVE_SPEED;
-        runupDistance_ = std::min(Config::JUMP_RUNUP_DISTANCE,
-                                  runupDistance_ + distance);
+        const float step = distance * fraction / length;
+        const float x = pos_.x + direction.x * step, z = pos_.z + direction.z * step;
+        float y=0;
+        if (clouds.supportAt(supportId_,x,z,y) && std::abs(y-pos_.y)<=Config::GROUND_STEP_HEIGHT)
+        {
+            pos_={x,y,z};
+            runTime_+=distance*fraction/Config::GROUND_MOVE_SPEED;
+            runupDistance_=std::min(Config::JUMP_RUNUP_DISTANCE,runupDistance_+distance*fraction);
+            return;
+        }
+        fraction*=.5f;
     }
-    else
-    {
-        runTime_ = 0.0f;
-    }
+    runTime_=0.0f;
 }
 
 float Player::takeoffSpeed() const
 {
     // Giữ đà khi dừng ở mép để chỉnh góc camera trước khi nhảy.
     const float ratio = runupDistance_ / Config::JUMP_RUNUP_DISTANCE;
-    return Config::JUMP_STAND_SPEED + (Config::JUMP_RUN_SPEED - Config::JUMP_STAND_SPEED) * ratio;
+    const float maxSpeed = sprintHeld_ ? Config::JUMP_SPRINT_SPEED : Config::JUMP_RUN_SPEED;
+    return Config::JUMP_STAND_SPEED + (maxSpeed - Config::JUMP_STAND_SPEED) * ratio;
 }
 
-void Player::jump(const Vec3& direction)
+float Player::jumpCharge() const
 {
-    if (atSea_ || motion_ == Motion::Jump)
+    return runupDistance_ / Config::JUMP_RUNUP_DISTANCE;
+}
+
+bool Player::canDoubleJump() const
+{
+    return !grounded_ && jumpsUsed_ < Config::MAX_PLAYER_JUMPS && !atSea_;
+}
+
+void Player::jump(const Vec3& direction, bool sprint)
+{
+    sprintHeld_ = sprint;
+    if (atSea_ || (grounded_ && motion_ == Motion::Jump))
     {
         return;
     }
     if (!grounded_)
     {
+        if (jumpsUsed_ < Config::MAX_PLAYER_JUMPS)
+        {
+            ++jumpsUsed_;
+            bounces_ = 0;
+            vel_.y = Config::DOUBLE_JUMP_VY;
+            launchSpeed_ = std::max(launchSpeed_, Config::JUMP_STAND_SPEED);
+            const float length = std::hypot(direction.x, direction.z);
+            if (length > 0.0f)
+            {
+                yaw_ = std::atan2(direction.x, direction.z);
+                vel_.x = direction.x * launchSpeed_ / length;
+                vel_.z = direction.z * launchSpeed_ / length;
+            }
+            jumpBuffer_ = 0.0f;
+            setMotion(Motion::Fly);
+            return;
+        }
         // Nhớ một lần bấm sát lúc đáp. Giữ phím không tạo thêm yêu cầu nhảy.
         jumpBuffer_ = Config::JUMP_BUFFER_TIME;
         bufferedDirection_ = direction;
@@ -122,6 +155,7 @@ void Player::jump(const Vec3& direction)
         yaw_ = std::atan2(direction.x, direction.z);
     }
     launchYaw_ = yaw_;
+    jumpsUsed_ = 1;
     launchSpeed_ = takeoffSpeed();
     runTime_ = 0.0f;
     groundSpeed_ = 0.0f;
@@ -144,6 +178,7 @@ void Player::land(const Cloud& c, const Vec3& point, float impact, int& score)
     else
     {
         grounded_ = true;
+        jumpsUsed_ = 0;
         runupDistance_ = 0.0f;
         groundSpeed_ = 0.0f;
         vel_ = {};
@@ -174,8 +209,9 @@ void Player::updateMotion(float dt)
     }
 }
 
-void Player::update(float dt, const Vec3& direction, const CloudField& clouds, bool collide, int& score, float turn)
+void Player::update(float dt, const Vec3& direction, const CloudField& clouds, bool collide, int& score, float turn, bool sprint)
 {
+    sprintHeld_ = sprint;
     if (atSea_)
     {
         return;
@@ -187,7 +223,7 @@ void Player::update(float dt, const Vec3& direction, const CloudField& clouds, b
         translate(pos_, clouds.displacement(supportId_, fromTime, toTime));
         if (jumpBuffer_ > 0.0f)
         {
-            jump(bufferedDirection_);
+            jump(bufferedDirection_, sprintHeld_);
         }
         walk(dt, direction, turn, clouds);
         updateMotion(dt);
@@ -283,6 +319,7 @@ bool Player::predictLanding(const Vec3& direction, const CloudField& clouds, Lan
             translate(marker.pos, clouds.displacement(cloud->id, nextTime, now));
             marker.slopeX = contact.slopeX;
             marker.slopeZ = contact.slopeZ;
+            marker.cloudId = cloud->id;
             return true;
         }
         if (pos.y <= Config::SEA_Y)

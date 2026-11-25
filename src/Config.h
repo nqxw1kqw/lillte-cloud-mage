@@ -21,16 +21,21 @@ namespace Config
     constexpr float MAX_DT = 0.05f;
 
     // ===== Nhảy và bay =====
-    constexpr float JUMP_VY = 10.8f;
+    constexpr float JUMP_VY = 11.4f;
     constexpr float JUMP_STAND_SPEED = 10.0f;
-    constexpr float JUMP_RUN_SPEED = 15.0f;
-    constexpr float JUMP_RUNUP_DISTANCE = 3.0f;
+    constexpr float JUMP_RUN_SPEED = 16.0f;
+    constexpr float JUMP_RUNUP_DISTANCE = 2.5f;
     constexpr float GROUND_MOVE_SPEED = 7.0f;
+    constexpr float SPRINT_MOVE_SPEED = 11.0f;
+    constexpr float JUMP_SPRINT_SPEED = 21.0f;
+    constexpr float DOUBLE_JUMP_VY = 10.8f;
+    constexpr int MAX_PLAYER_JUMPS = 2;
     constexpr float GROUND_ACCELERATION = 56.0f;
     constexpr float JUMP_BUFFER_TIME = 0.12f;
     constexpr float GROUND_TURN_SPEED = 2.2f;  // radian mỗi giây
-    constexpr float GROUND_STEP_HEIGHT = 0.25f;
-    constexpr float AIR_STEER_RATE = 2.0f;
+    constexpr float GROUND_STEP_HEIGHT = 0.55f;
+    constexpr int GROUND_FOOTING_SUBSTEPS = 8;
+    constexpr float AIR_STEER_RATE = 3.0f;
     constexpr float GRAVITY = 18.0f;
 
     // ===== Đáp và nảy =====
@@ -70,9 +75,24 @@ namespace Config
     constexpr size_t CLOUD_PLATFORM_COUNT = 5;
     constexpr float CLOUD_HALF_W = 9.6f;
     constexpr float CLOUD_HALF_D = 11.1f;
-    constexpr float CLOUD_TOP_OFFSET = 0.01f;
-    constexpr float CLOUD_BOTTOM_OFFSET = -4.0f;
+    constexpr float CLOUD_TOP_OFFSET = 4.0f;
+    constexpr float CLOUD_BOTTOM_OFFSET = -8.0f;
     constexpr float CLOUD_CONTACT_EPSILON = 0.0001f;
+    constexpr float CLOUD_HEIGHT_GRID_STEP = 0.35f;
+    constexpr int CLOUD_HEIGHT_COLS = static_cast<int>(2*CLOUD_HALF_W/CLOUD_HEIGHT_GRID_STEP)+2;
+    constexpr int CLOUD_HEIGHT_ROWS = static_cast<int>(2*CLOUD_HALF_D/CLOUD_HEIGHT_GRID_STEP)+2;
+    constexpr int CLOUD_CONTACT_SUBSTEPS = 4;
+    constexpr int CLOUD_CONTACT_BISECTIONS = 12;
+    constexpr float CLOUD_CROWN_HEIGHT = 1.35f;
+    constexpr float CLOUD_LOBE_HEIGHT = 2.2f;
+    constexpr float CLOUD_LOBE_SHARPNESS = 0.9f;
+    constexpr float CLOUD_SOURCE_RELIEF = 0.35f;
+    constexpr int CLOUD_SURFACE_SMOOTH_PASSES = 8;
+    constexpr float CLOUD_RIPPLE_HEIGHT = 0.12f;
+    constexpr float CLOUD_SHELL_DEPTH = 3.0f;
+    constexpr float CLOUD_SHELL_EDGE = 0.8f;
+    constexpr int CLOUD_SHELL_RINGS = 6;
+    constexpr std::array CLOUD_SURFACE_COLORS{0xeff3ff,0xf3f5ff,0xeaf2ff,0xe3ebff,0xa8c7ff};
     constexpr float CLOUD_DRIFT_X = 0.80f;
     constexpr float CLOUD_DRIFT_Y = 0.36f;
     constexpr float CLOUD_DRIFT_Z = 0.52f;
@@ -103,7 +123,8 @@ namespace Config
     // Chỉ dùng mặt đủ thoải để đứng. Loại vách nghiêng trên 45 độ.
     constexpr float CLOUD_MAX_LANDING_SLOPE_SQUARED = 1.0f;
     constexpr int CLOUD_DECOR_PER_PLATFORM = 2;
-    constexpr float CLOUD_DECOR_SIDE = 28.0f;
+    constexpr float CLOUD_DECOR_SIDE = 44.0f;
+    constexpr float CLOUD_SCENERY_CLEARANCE = 32.0f;
     constexpr float CLOUD_DECOR_SIDE_VARIATION = 4.0f;
     constexpr size_t CLOUD_LANDMARK_MODEL = 8;
     constexpr float CLOUD_DECOR_LANDMARK_MARGIN = 14.0f;
@@ -112,22 +133,61 @@ namespace Config
     constexpr float CLOUD_DECOR_DOWN = -8.0f;
     constexpr float DESPAWN_BEHIND = 40.0f;
     // Chừa thêm ô cho mây mới sinh và phần mép còn trong tầm người chơi.
-    constexpr int CLOUD_POOL_SIZE = 32;
-    struct WindLessonCloud
+    constexpr int STAIR_COUNT = 40;
+    constexpr int CLOUD_POOL_SIZE = STAIR_COUNT;
+    struct StairDifficulty
     {
-        float x, y, z;
-        size_t model;
-        bool movable;
+        int lastStair;
+        float distanceMin, distanceMax;
+        float riseMin, riseMax;
     };
-    constexpr std::array WIND_LESSON{
-        WindLessonCloud{0.0f, 0.0f, 0.0f, 0, false},
-        WindLessonCloud{0.0f, 1.2f, 24.4f, 1, false},
-        WindLessonCloud{38.0f, 2.4f, 48.8f, 2, true},
-        WindLessonCloud{0.0f, 3.6f, 73.2f, 3, false},
-        WindLessonCloud{-38.0f, 4.8f, 97.6f, 4, true},
-        WindLessonCloud{0.0f, 6.0f, 122.0f, 0, false},
-        WindLessonCloud{0.0f, 7.2f, 146.4f, 1, false}
+    constexpr std::array STAIR_DIFFICULTY{
+        StairDifficulty{9, 24.0f, 26.0f, 2.2f, 2.8f},
+        StairDifficulty{20, 28.0f, 31.0f, 3.0f, 3.6f},
+        StairDifficulty{30, 33.0f, 36.0f, 3.7f, 4.3f},
+        StairDifficulty{40, 38.0f, 41.0f, 4.4f, 5.0f}
     };
+    constexpr const StairDifficulty& stairDifficulty(int stair)
+    {
+        for (const auto& stage : STAIR_DIFFICULTY)
+            if (stair <= stage.lastStair) return stage;
+        return STAIR_DIFFICULTY.back();
+    }
+    constexpr float STAIR_HEADING_LIMIT = 0.75f;
+    constexpr float STAIR_TURN_MAX = 0.40f;
+    constexpr float CLOUD_DRAW_DISTANCE = 170.0f;
+    constexpr int MOTH_STAIR = 10;
+    constexpr int MOTH_CLOUD_ID = MOTH_STAIR - 1;
+    constexpr int MOTH_LAST_STAIR = 20;
+    constexpr int MOTH_LAST_CLOUD_ID = MOTH_LAST_STAIR - 1;
+    constexpr int MOTH_COUNT = 14; // Mỗi bệ trong vùng, tổng cộng 154 con.
+    constexpr std::array BUTTERFLY_PALETTES{0xb49aff,0x69cfff,0x77dfb2,0xff9cbd,0xffce70,0xf29d68};
+    constexpr int RARE_BUTTERFLY_INTERVAL = 37;
+    constexpr int RARE_BUTTERFLY_OFFSET = 17;
+    constexpr float RARE_BUTTERFLY_PERIOD = 14.0f;
+    constexpr float RARE_BUTTERFLY_COLOR_MIN = 0.25f;
+    constexpr float BUTTERFLY_EMISSION = 0.6f;
+    constexpr float RARE_BUTTERFLY_EMISSION = 0.9f;
+    constexpr bool inButterflyRegion(int cloudId)
+    {
+        return cloudId >= MOTH_CLOUD_ID && cloudId <= MOTH_LAST_CLOUD_ID;
+    }
+    constexpr bool rareButterfly(int cloudId, int index)
+    {
+        return inButterflyRegion(cloudId) &&
+            ((cloudId-MOTH_CLOUD_ID)*MOTH_COUNT+index)%RARE_BUTTERFLY_INTERVAL == RARE_BUTTERFLY_OFFSET;
+    }
+    constexpr float MOTH_REGION_RADIUS = 24.0f;
+    constexpr float MOTH_REGION_HEIGHT = 10.0f;
+    constexpr float MOTH_DRAW_DISTANCE = 70.0f;
+    constexpr float MOTH_ORBIT_MIN = 4.0f;
+    constexpr float MOTH_ORBIT_SPREAD = 16.0f;
+    constexpr float MOTH_HEIGHT_MIN = 2.0f;
+    constexpr float MOTH_HEIGHT_SPREAD = 9.0f;
+    constexpr float MOTH_SPEED = 0.22f;
+    constexpr float MOTH_SCALE = 15.0f;
+    constexpr int MOTH_COLOR = 0xbcb4ff;
+    constexpr int MOTH_TITLE_Y = 118;
     constexpr float WIND_RANGE = 65.0f;
     constexpr float WIND_AIM_RADIUS = 8.0f;
     constexpr float WIND_PLACE_DISTANCE = 23.0f;
@@ -147,7 +207,7 @@ namespace Config
     constexpr float WIND_GOAL_RADIUS = 0.75f;
     constexpr int WIND_GOAL_DIVISIONS = 12;
     constexpr int WIND_AIM_CROSS_SIZE = 5;
-    static_assert(CLOUD_POOL_SIZE >= WIND_LESSON.size(), "Bộ đệm phải chứa đủ các bệ của màn gió");
+    static_assert(CLOUD_POOL_SIZE >= STAIR_COUNT, "Bộ đệm phải chứa đủ 40 bậc");
 
     // ===== Camera =====
     constexpr float FULL_TURN = 6.2831853f;
@@ -184,12 +244,64 @@ namespace Config
     constexpr float STAR_Y_MAX = 200.0f;
     constexpr float STAR_Z_MIN = -100.0f;
     constexpr float STAR_Z_MAX = 300.0f;
-    constexpr float STAR_X_FOLLOW = 0.3f;
+    constexpr float STAR_X_FOLLOW = 1.0f;
     constexpr unsigned int STAR_SEED = 12345u;
     // PointsMaterial size 1.3 của bản Three.js (tính theo pixel, có sizeAttenuation).
     // Render::init quy ra cạnh hình vuông thế giới = 1.3 * tan(FOV/2) (~0.91 ở FOV 70)
     // để sao to bằng bản gốc, và vẫn khớp nếu CAMERA_FOV_DEG đổi.
     constexpr float STAR_POINT_SIZE_THREE = 1.3f;
+
+    // Cảnh mẫu bên đường: bố trí theo bậc, dùng chung mesh tạo lúc khởi tạo.
+    struct EnvironmentSite { int cloudId; float side; float scale; };
+    constexpr std::array ENVIRONMENT_SITES{
+        EnvironmentSite{3,-1.0f,0.8f}, EnvironmentSite{9,1.0f,1.05f},
+        EnvironmentSite{13,-1.0f,1.0f}, EnvironmentSite{17,1.0f,0.9f},
+        EnvironmentSite{19,-1.0f,1.1f}
+    };
+    constexpr float ENV_SIDE_DISTANCE = 48.0f;
+    constexpr float ENV_PLACEMENT_STEP = 8.0f;
+    constexpr int ENV_PLACEMENT_ATTEMPTS = 7;
+    constexpr float ENV_PATH_MARGIN = 28.0f;
+    constexpr float ENV_SCENERY_MARGIN = 22.0f;
+    constexpr float ENV_FORWARD_OFFSET = 22.0f;
+    constexpr float ENV_HEIGHT_OFFSET = -3.0f;
+    constexpr float ENV_DRAW_DISTANCE = 190.0f;
+    constexpr float ENV_BOB_HEIGHT = 0.65f;
+    constexpr float ENV_BOB_SPEED = 0.5f;
+    constexpr int ENV_ISLAND_SEGMENTS = 13;
+    constexpr float ENV_ISLAND_RADIUS = 14.0f;
+    constexpr float ENV_ISLAND_DEPTH_RATIO = 0.78f;
+    constexpr float ENV_ISLAND_DROP = 17.0f;
+    constexpr int ENV_SOIL_COLOR = 0x657095;
+    constexpr int ENV_GRASS_COLOR = 0x659e9a;
+    constexpr int ENV_STONE_COLOR = 0xb4b3cd;
+    constexpr int ENV_WOOD_COLOR = 0x685873;
+    constexpr int ENV_CRYSTAL_COLOR = 0x9cf5e6;
+    constexpr int ENV_RUNE_COLOR = 0x8ac7f0;
+    constexpr int ENV_BRANCH_SIDES = 7;
+    constexpr float ENV_ARCH_X = -4.0f;
+    constexpr float ENV_ARCH_Z = 1.5f;
+    constexpr float ENV_ARCH_HEIGHT = 5.2f;
+    constexpr float ENV_ARCH_INNER_RADIUS = 2.7f;
+    constexpr float ENV_ARCH_OUTER_RADIUS = 3.8f;
+    constexpr float ENV_ARCH_HALF_DEPTH = 0.65f;
+    constexpr int ENV_ARCH_SEGMENTS = 9;
+    constexpr float ENV_RUNE_SPEED = 0.18f;
+    constexpr int ENV_SPARK_COUNT = 32;
+    constexpr int ENV_SPARK_SEGMENTS = 6;
+    constexpr float ENV_SPARK_RADIUS = 0.14f;
+    constexpr float ENV_SPARK_RISE_SPEED = 0.55f;
+    constexpr float ENV_SPARK_HEIGHT = 13.0f;
+    constexpr float ENV_CANOPY_HALO_SCALE = 1.35f;
+    constexpr int ENV_CANOPY_HALO_ALPHA = 30;
+    struct EnvironmentCanopy { float x,y,z,rx,ry,rz; int color; };
+    constexpr std::array ENV_CANOPIES{
+        EnvironmentCanopy{4.2f,9.0f,-2.0f,3.1f,2.0f,2.7f,0x91e8d7},
+        EnvironmentCanopy{1.7f,7.7f,-2.4f,2.5f,1.6f,2.1f,0xa8c7f4},
+        EnvironmentCanopy{6.6f,7.7f,-0.8f,2.8f,1.7f,2.4f,0xc0b2f0},
+        EnvironmentCanopy{4.9f,7.3f,-4.5f,2.5f,1.6f,2.1f,0x7cdecf},
+        EnvironmentCanopy{4.0f,10.6f,-2.3f,2.0f,1.2f,1.8f,0xc5f4dc}
+    };
 
     // Màu RGB dạng số thực 0..1 cho đèn và vật liệu.
     struct RgbF
@@ -223,6 +335,29 @@ namespace Config
         L"assets/models/clouds_v2/cv2_virga_alpha.png"
     };
     constexpr float WITCH_ANIMATION_FPS = 30.0f;
+    // Bướm chỉ trang trí, dùng thời gian mô phỏng để dừng cùng màn chơi.
+    constexpr const wchar_t* BUTTERFLY_MODEL_PATH = L"assets/models/butterfly/butterfly.mv1";
+    constexpr int BUTTERFLIES_PER_CLOUD = 2;
+    constexpr int BUTTERFLY_FLY_CLIP = 1;
+    constexpr float BUTTERFLY_ANIMATION_FPS = 240.0f;
+    constexpr float BUTTERFLY_SCALE = 12.0f;
+    constexpr float BUTTERFLY_ORBIT_RADIUS = 5.0f;
+    constexpr float BUTTERFLY_ORBIT_VARIATION = 1.5f;
+    constexpr float BUTTERFLY_ORBIT_DEPTH = 0.72f;
+    constexpr float BUTTERFLY_ORBIT_SPEED = 0.65f;
+    constexpr float BUTTERFLY_HEIGHT = 3.0f;
+    constexpr float BUTTERFLY_HEIGHT_VARIATION = 0.6f;
+    constexpr float BUTTERFLY_BOB = 0.4f;
+    constexpr float BUTTERFLY_BOB_RATE = 2.3f;
+    constexpr float BUTTERFLY_BANK = 0.18f;
+    constexpr float BUTTERFLY_PHASE = 1.73f;
+    constexpr float BUTTERFLY_DRAW_DISTANCE = 75.0f;
+    constexpr int JUMP_GUIDE_X = 18;
+    constexpr int JUMP_GUIDE_BOTTOM = 170;
+    constexpr int JUMP_GUIDE_LINE_HEIGHT = 26;
+    constexpr int JUMP_GUIDE_BAR_WIDTH = 160;
+    constexpr int JUMP_GUIDE_BAR_HEIGHT = 6;
+    constexpr int JUMP_GUIDE_SAFE_COLOR = 0x87efad;
     constexpr float WITCH_JUMP_TAKEOFF_FRAME = 7.0f;
     constexpr float WITCH_LAND_CONTACT_FRAME = 3.0f;
     // Cho phép khung khom người phát khi còn đứng trên mây.

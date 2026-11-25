@@ -4,6 +4,7 @@
 |---|---|---|---|---|
 | DxLib (Takumi Yamada) | 3.24f | Giấy phép DxLib: dùng miễn phí, cả mục đích thương mại; cần ghi chú bản quyền của các thư viện mà DxLib dùng bên trong (libjpeg, libpng, zlib, Ogg Vorbis, Opus, Bullet...) theo hướng dẫn trên trang chủ DxLib | `C:\DxLib` (không chép vào repo) | Thư viện đồ họa, âm thanh và input chính theo AGENTS.md |
 | Be Vietnam Pro Regular | Bản trên kho google/fonts (nhánh main, tải ngày triển khai) | SIL Open Font License 1.1 (`assets/fonts/OFL.txt`) | `assets/fonts/BeVietnamPro-Regular.ttf` (≈130 KB) | Font có đầy đủ dấu tiếng Việt cho HUD và thông báo |
+| Butterfly — Polyfork | Gói `butterfly-base-default.zip` do Shin cung cấp | CC BY 4.0, xem `assets/models/butterfly/LICENSE.txt` | `assets/models/butterfly/` | Model bướm X/MV1, bay trang trí quanh các bệ mây |
 
 Không dùng thêm thư viện C++ nào khác. Phần còn lại chỉ dùng thư viện chuẩn C++17 và Win32 API (`AddFontResourceExW`, `FindFirstFileW`, `MessageBoxW`).
 

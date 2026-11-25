@@ -47,7 +47,7 @@ void Game::action()
     {
         state_ = State::Play;
     }
-    player_.jump(camera_.worldDirection(input_.moveX(), input_.moveZ()));
+    player_.jump(camera_.worldDirection(input_.moveX(), input_.moveZ()), input_.sprintHeld());
 }
 
 void Game::Update(float dt)
@@ -161,7 +161,7 @@ void Game::step(float dt)
     clouds_.advance(dt);
 
     const Vec3 direction = camera_.worldDirection(input_.moveX(), input_.moveZ());
-    player_.update(dt, direction, clouds_, state_ == State::Play, score_, input_.turn());
+    player_.update(dt, direction, clouds_, state_ == State::Play, score_, input_.turn(), input_.sprintHeld());
     if (state_ == State::Play && player_.isBelowSea())
     {
         state_ = State::Over;
@@ -170,7 +170,7 @@ void Game::step(float dt)
         input_.releaseMouse();
     }
     if (state_ == State::Play && player_.grounded() &&
-        player_.supportingCloud() == static_cast<int>(Config::WIND_LESSON.size()) - 1)
+        player_.supportingCloud() == Config::STAIR_COUNT - 1)
     {
         state_ = State::Won;
         overTicks_ = 0;
@@ -193,6 +193,7 @@ void Game::Render()
     if (state_ == State::Ready || state_ == State::Play)
     {
         render_.drawWindLesson(player_, clouds_, windTarget_, pullingWind_);
+        render_.drawJumpGuide(player_, landingMarker_);
     }
     if (paused_)
     {

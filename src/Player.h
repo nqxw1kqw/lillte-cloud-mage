@@ -18,6 +18,7 @@ struct LandingMarker
     Vec3 pos{};
     float slopeX = 0.0f;
     float slopeZ = 0.0f;
+    int cloudId = -1;
 };
 
 // Phù thủy: nhảy, bay, rơi và đáp lên mây. Không gọi DxLib.
@@ -29,10 +30,10 @@ public:
     void reset(float top);
 
     // Giữ hướng đã chọn trên mây khi lấy đà.
-    void jump(const Vec3& direction);
+    void jump(const Vec3& direction, bool sprint = false);
 
     // collide = false khi đã thua, để phù thủy rơi xuyên qua mây như bản gốc.
-    void update(float dt, const Vec3& direction, const CloudField& clouds, bool collide, int& score, float turn = 0.0f);
+    void update(float dt, const Vec3& direction, const CloudField& clouds, bool collide, int& score, float turn = 0.0f, bool sprint = false);
 
     bool isBelowSea() const;
 
@@ -48,6 +49,8 @@ public:
     float rotZ() const { return rotZ_; }
     float yaw() const { return yaw_; }
     float runTime() const { return runTime_; }
+    float jumpCharge() const;
+    bool canDoubleJump() const;
     bool grounded() const { return grounded_; }
     int supportingCloud() const { return supportId_; }
     Motion motion() const { return motion_; }
@@ -73,6 +76,8 @@ private:
     float jumpBuffer_ = 0.0f;
     Vec3 bufferedDirection_{};
     int bounces_ = 0;
+    int jumpsUsed_ = 0;
+    bool sprintHeld_ = false;
     int supportId_ = 0;
     bool grounded_ = true;
     bool atSea_ = false;

@@ -2,108 +2,198 @@
 
 #include <algorithm>
 #include <cmath>
+#include <random>
+#include <utility>
 
 void CloudSurface::addTriangle(const Vec3& a, const Vec3& b, const Vec3& c)
 {
-    const float bx = b.x - a.x;
-    const float bz = b.z - a.z;
-    const float cx = c.x - a.x;
-    const float cz = c.z - a.z;
-    const float determinant = bx * cz - cx * bz;
-    // Các model dùng thứ tự đỉnh DxLib. Tích có hướng theo X/Z dương là mặt hướng lên.
-    if (determinant < Config::CLOUD_CONTACT_EPSILON)
-    {
-        return;
+    footprint_.push_back(a);
+    footprint_.push_back(b);
+    footprint_.push_back(c);
+    baked_=false;
+    const float bx=b.x-a.x,bz=b.z-a.z,cx=c.x-a.x,cz=c.z-a.z;
+    const float determinant=bx*cz-cx*bz;
+    if (determinant<=Config::CLOUD_CONTACT_EPSILON) return;
+    const float by=b.y-a.y,cy=c.y-a.y;
+    roof_.push_back({a,b,c,determinant,(by*cz-cy*bz)/determinant,(bx*cy-cx*by)/determinant,
+                    std::min({a.x,b.x,c.x}),std::max({a.x,b.x,c.x}),
+                    std::min({a.z,b.z,c.z}),std::max({a.z,b.z,c.z})});
+}
+
+void CloudSurface::buildFootprint()
+{
+    auto turn = [](const Vec3& a, const Vec3& b, const Vec3& c) {
+        return (b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x);
+    };
+    std::sort(footprint_.begin(), footprint_.end(), [](const Vec3& a, const Vec3& b) {
+        return a.x < b.x || (a.x == b.x && a.z < b.z);
+    });
+    footprint_.erase(std::unique(footprint_.begin(), footprint_.end(), [](const Vec3& a, const Vec3& b) {
+        return a.x == b.x && a.z == b.z;
+    }), footprint_.end());
+    if (footprint_.size() < 3) return;
+    std::vector<Vec3> hull;
+    hull.reserve(footprint_.size()*2);
+    for (const Vec3& p : footprint_) {
+        while (hull.size() >= 2 && turn(hull[hull.size()-2], hull.back(), p) <= 0) hull.pop_back();
+        hull.push_back(p);
     }
-
-    const float by = b.y - a.y;
-    const float cy = c.y - a.y;
-    const float slopeX = (by * cz - cy * bz) / determinant;
-    const float slopeZ = (bx * cy - cx * by) / determinant;
-    triangles_.push_back({a, b, c, determinant, slopeX, slopeZ});
+    const size_t lower = hull.size();
+    for (size_t i = footprint_.size()-1; i-- > 0;) {
+        const Vec3& p = footprint_[i];
+        while (hull.size() > lower && turn(hull[hull.size()-2], hull.back(), p) <= 0) hull.pop_back();
+        hull.push_back(p);
+    }
+    hull.pop_back();
+    footprint_ = std::move(hull);
 }
 
-float CloudSurface::Triangle::heightAt(float x, float z) const
+bool CloudSurface::contains(float x, float z) const
 {
-    return a.y + slopeX * (x - a.x) + slopeZ * (z - a.z);
-}
-
-bool CloudSurface::Triangle::contains(float x, float z) const
-{
-    constexpr float eps = Config::CLOUD_CONTACT_EPSILON;
-    const float dx = x - a.x;
-    const float dz = z - a.z;
-    const float u = (dx * (c.z - a.z) - dz * (c.x - a.x)) / determinant;
-    const float v = ((b.x - a.x) * dz - (b.z - a.z) * dx) / determinant;
-    return u >= -eps && v >= -eps && u + v <= 1.0f + eps;
+    if (footprint_.size() < 3) return false;
+    for (size_t i=0; i<footprint_.size(); ++i) {
+        const Vec3& a=footprint_[i]; const Vec3& b=footprint_[(i+1)%footprint_.size()];
+        if ((b.x-a.x)*(z-a.z)-(b.z-a.z)*(x-a.x) < -Config::CLOUD_CONTACT_EPSILON) return false;
+    }
+    return true;
 }
 
 bool CloudSurface::roofHeight(float x, float z, float& height) const
 {
-    bool found = false;
-    for (const Triangle& t : triangles_)
+    if (!contains(x,z)) return false;
+    height = sampledHeight(x,z);
+    return true;
+}
+
+bool CloudSurface::meshHeight(float x, float z, float& height) const
+{
+    bool found=false;
+    for (const auto& t : roof_)
     {
-        if (t.contains(x, z))
+        constexpr float eps=Config::CLOUD_CONTACT_EPSILON;
+        if (x<t.minX-eps || x>t.maxX+eps || z<t.minZ-eps || z>t.maxZ+eps) continue;
+        const float dx=x-t.a.x,dz=z-t.a.z;
+        const float u=(dx*(t.c.z-t.a.z)-dz*(t.c.x-t.a.x))/t.determinant;
+        const float v=((t.b.x-t.a.x)*dz-(t.b.z-t.a.z)*dx)/t.determinant;
+        if (u>=-Config::CLOUD_CONTACT_EPSILON && v>=-Config::CLOUD_CONTACT_EPSILON &&
+            u+v<=1+Config::CLOUD_CONTACT_EPSILON)
         {
-            const float y = t.heightAt(x, z);
-            if (!found || y > height)
-            {
-                height = y;
-                found = true;
-            }
+            const float y=t.a.y+t.slopeX*dx+t.slopeZ*dz;
+            if (!found || y>height) height=y;
+            found=true;
         }
     }
     return found;
 }
 
-bool CloudSurface::isExposed(const Vec3& point) const
+float CloudSurface::sourceHeight(float x, float z) const
 {
-    // Mặt dốc không cho đứng vẫn có thể che một mặt thoải bên dưới.
-    for (const Triangle& t : triangles_)
+    float height=0;
+    if (meshHeight(x,z,height)) return height;
+    float nearest=1e30f,nearestHeight=0;
+    // Khe giữa các múi dùng độ cao mép gần nhất, không dựng lại sàn ngang ở Y=0.
+    for (const auto& t : roof_)
     {
-        if (t.contains(point.x, point.z) &&
-            t.heightAt(point.x, point.z) > point.y + Config::CLOUD_CONTACT_EPSILON)
+        const std::array<Vec3,3> corners{t.a,t.b,t.c};
+        for (size_t i=0;i<3;++i)
         {
-            return false;
+            const Vec3& a=corners[i];const Vec3& b=corners[(i+1)%3];
+            const float dx=b.x-a.x,dz=b.z-a.z,length=dx*dx+dz*dz;
+            const float f=length>0 ? std::clamp(((x-a.x)*dx+(z-a.z)*dz)/length,0.0f,1.0f) : 0;
+            const float px=a.x+f*dx-x,pz=a.z+f*dz-z,distance=px*px+pz*pz;
+            const float y=a.y+f*(b.y-a.y);
+            if (distance<nearest || (distance==nearest && y>nearestHeight))
+            {
+                nearest=distance;nearestHeight=y;
+            }
         }
     }
-    return true;
+    return nearestHeight;
+}
+
+void CloudSurface::bakeHeightfield()
+{
+    for (int z=0;z<Config::CLOUD_HEIGHT_ROWS;++z) for(int x=0;x<Config::CLOUD_HEIGHT_COLS;++x)
+    {
+        const float px=-Config::CLOUD_HALF_W+x*Config::CLOUD_HEIGHT_GRID_STEP;
+        const float pz=-Config::CLOUD_HALF_D+z*Config::CLOUD_HEIGHT_GRID_STEP;
+        const float crown=Config::CLOUD_CROWN_HEIGHT*std::exp(-.018f*px*px-.012f*pz*pz);
+        const float ripple=Config::CLOUD_RIPPLE_HEIGHT*std::sin(px*.6f)*std::sin(pz*.45f);
+        float lobes=0;
+        for (const auto& puff : Config::CLOUD_PUFFS)
+        {
+            const float dx=(px-puff.x)/puff.rx,dz=(pz-puff.z)/puff.rz;
+            const float peak=Config::CLOUD_LOBE_HEIGHT*(.75f+.25f*puff.ry/2.5f);
+            lobes=std::max(lobes,peak*std::exp(-Config::CLOUD_LOBE_SHARPNESS*(dx*dx+dz*dz)));
+        }
+        heights_[static_cast<size_t>(z*Config::CLOUD_HEIGHT_COLS+x)]=
+            sourceHeight(px,pz)*Config::CLOUD_SOURCE_RELIEF+crown+ripple+lobes;
+    }
+    for (int pass=0;pass<Config::CLOUD_SURFACE_SMOOTH_PASSES;++pass)
+    {
+        const auto previous=heights_;
+        for (int z=0;z<Config::CLOUD_HEIGHT_ROWS;++z) for(int x=0;x<Config::CLOUD_HEIGHT_COLS;++x)
+        {
+            float sum=0;
+            for (int dz=-1;dz<=1;++dz) for(int dx=-1;dx<=1;++dx)
+            {
+                const int col=std::clamp(x+dx,0,Config::CLOUD_HEIGHT_COLS-1);
+                const int row=std::clamp(z+dz,0,Config::CLOUD_HEIGHT_ROWS-1);
+                sum+=previous[static_cast<size_t>(row*Config::CLOUD_HEIGHT_COLS+col)];
+            }
+            heights_[static_cast<size_t>(z*Config::CLOUD_HEIGHT_COLS+x)]=sum/9;
+        }
+    }
+    baked_=true;
+}
+
+float CloudSurface::sampledHeight(float x, float z) const
+{
+    if (!baked_) return sourceHeight(x,z);
+    const float u=std::clamp((x+Config::CLOUD_HALF_W)/Config::CLOUD_HEIGHT_GRID_STEP,
+                             0.0f,static_cast<float>(Config::CLOUD_HEIGHT_COLS-1));
+    const float v=std::clamp((z+Config::CLOUD_HALF_D)/Config::CLOUD_HEIGHT_GRID_STEP,
+                             0.0f,static_cast<float>(Config::CLOUD_HEIGHT_ROWS-1));
+    const int col=std::min(static_cast<int>(u),Config::CLOUD_HEIGHT_COLS-2);
+    const int row=std::min(static_cast<int>(v),Config::CLOUD_HEIGHT_ROWS-2);
+    const float fx=u-col,fz=v-row;
+    auto at=[&](int dx,int dz){return heights_[static_cast<size_t>((row+dz)*Config::CLOUD_HEIGHT_COLS+col+dx)];};
+    // Cùng đường chéo với mesh vẽ: mặt nhìn thấy và mặt đáp trùng nhau.
+    if (fx+fz<=1) return at(0,0)+(at(1,0)-at(0,0))*fx+(at(0,1)-at(0,0))*fz;
+    return at(1,1)+(at(0,1)-at(1,1))*(1-fx)+(at(1,0)-at(1,1))*(1-fz);
 }
 
 bool CloudSurface::cross(const Vec3& from, const Vec3& to, CloudContact& contact) const
 {
-    bool hit = false;
-    constexpr float eps = Config::CLOUD_CONTACT_EPSILON;
-    for (const Triangle& t : triangles_)
+    if (from.y<=to.y || to.y>Config::CLOUD_TOP_OFFSET) return false;
+    auto point=[&](float t){return Vec3{from.x+(to.x-from.x)*t,from.y+(to.y-from.y)*t,from.z+(to.z-from.z)*t};};
+    auto gap=[&](float t){const auto p=point(t);return p.y-sampledHeight(p.x,p.z);};
+    float previous=gap(0),left=0;
+    for (int i=1;i<=Config::CLOUD_CONTACT_SUBSTEPS;++i)
     {
-        if (t.slopeX * t.slopeX + t.slopeZ * t.slopeZ > Config::CLOUD_MAX_LANDING_SLOPE_SQUARED)
+        const float right=static_cast<float>(i)/Config::CLOUD_CONTACT_SUBSTEPS;
+        const float current=gap(right);
+        if (previous>=-Config::CLOUD_CONTACT_EPSILON && current<=Config::CLOUD_CONTACT_EPSILON && previous>current)
         {
-            continue;
+            float low=left,high=right;
+            for (int j=0;j<Config::CLOUD_CONTACT_BISECTIONS;++j)
+            {
+                const float mid=(low+high)*.5f;
+                if (gap(mid)>0) low=mid; else high=mid;
+            }
+            const Vec3 p=point(high);
+            if (high<=contact.fraction && contains(p.x,p.z))
+            {
+                constexpr float step=Config::CLOUD_HEIGHT_GRID_STEP;
+                contact={{p.x,sampledHeight(p.x,p.z),p.z},high,
+                    (sampledHeight(p.x+step,p.z)-sampledHeight(p.x-step,p.z))/(2*step),
+                    (sampledHeight(p.x,p.z+step)-sampledHeight(p.x,p.z-step))/(2*step)};
+                return true;
+            }
         }
-
-        const float fromGap = from.y - t.heightAt(from.x, from.z);
-        const float toGap = to.y - t.heightAt(to.x, to.z);
-        // Chỉ đáp từ phía trên. Sai số nhỏ giữ cú nảy thẳng đứng trên cùng một tam giác.
-        if (fromGap < -eps || toGap > eps || fromGap <= toGap)
-        {
-            continue;
-        }
-
-        const float fraction = std::clamp(fromGap / (fromGap - toGap), 0.0f, 1.0f);
-        if (fraction > contact.fraction)
-        {
-            continue;
-        }
-        const float x = from.x + (to.x - from.x) * fraction;
-        const float z = from.z + (to.z - from.z) * fraction;
-        const Vec3 point{x, t.heightAt(x, z), z};
-        if (t.contains(x, z) && isExposed(point))
-        {
-            contact = {point, fraction, t.slopeX, t.slopeZ};
-            hit = true;
-        }
+        previous=current;left=right;
     }
-    return hit;
+    return false;
 }
 
 Vec3 Cloud::windOffsetAt(double time) const
@@ -125,16 +215,30 @@ Vec3 Cloud::positionAt(double time) const
             z + offset.z + wave(Config::CLOUD_DRIFT_Z, Config::CLOUD_DRIFT_RATE_Z, phase * 0.7)};
 }
 
-void CloudField::reset()
+void CloudField::reset(unsigned int seed)
 {
     head_ = 0;
     count_ = 0;
     nextId_ = 0;
     time_ = 0.0;
     previousTime_ = 0.0;
-    for (const auto& entry : Config::WIND_LESSON)
-    {
-        addCloud(entry.x, entry.y, entry.z);
+    std::mt19937 rng(seed == 0 ? std::random_device{}() : seed);
+    std::uniform_real_distribution<float> turn(-Config::STAIR_TURN_MAX, Config::STAIR_TURN_MAX);
+    std::uniform_int_distribution<int> model(0, static_cast<int>(Config::CLOUD_PLATFORM_COUNT)-1);
+    float x=0, y=0, z=0, heading=0;
+    for (int i=0; i<Config::STAIR_COUNT; ++i) {
+        if (i>0) {
+            const auto& stage = Config::stairDifficulty(i+1);
+            std::uniform_real_distribution<float> distance(stage.distanceMin,stage.distanceMax);
+            std::uniform_real_distribution<float> rise(stage.riseMin,stage.riseMax);
+            heading=std::clamp(heading+turn(rng),-Config::STAIR_HEADING_LIMIT,Config::STAIR_HEADING_LIMIT);
+            const float step=distance(rng);
+            x+=std::sin(heading)*step; z+=std::cos(heading)*step; y+=rise(rng);
+        }
+        addCloud(x,y,z);
+        Cloud& cloud=pool_[static_cast<size_t>(i)];
+        cloud.model=i==0 ? 0 : static_cast<size_t>(model(rng));
+        cloud.movable=i>0 && i!=Config::MOTH_CLOUD_ID && i!=Config::MOTH_LAST_CLOUD_ID && i!=Config::STAIR_COUNT-1;
     }
 }
 
@@ -262,14 +366,13 @@ bool CloudField::supportAt(int cloudId, float x, float z, float& height) const
         return false;
     }
 
-    CloudContact hit;
-    if (!surfaces_[cloud->model].cross({localX, Config::CLOUD_TOP_OFFSET, localZ},
-                                      {localX, Config::CLOUD_BOTTOM_OFFSET, localZ}, hit))
+    float roof=0;
+    if (!surfaces_[cloud->model].roofHeight(localX,localZ,roof))
     {
         return false;
     }
 
-    height = p.y + hit.pos.y;
+    height = p.y + roof;
     return true;
 }
 
@@ -330,16 +433,9 @@ void CloudField::addCloud(float x, float y, float z)
     c.x = x;
     c.y = y;
     c.z = z;
-    const auto& entry = Config::WIND_LESSON[static_cast<size_t>(c.id)];
-    c.model = entry.model;
-    c.movable = entry.movable;
+
 }
 
-void CloudField::extend(float playerZ)
+void CloudField::extend(float /*playerZ*/)
 {
-    while (count_ > 1 && first().z < playerZ - Config::DESPAWN_BEHIND)
-    {
-        head_ = (head_ + 1) % Config::CLOUD_POOL_SIZE;
-        --count_;
-    }
 }

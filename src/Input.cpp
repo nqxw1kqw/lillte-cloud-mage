@@ -23,6 +23,7 @@ void Input::update(bool captureMouse)
     actionPressed_ = false;
     quitPressed_ = false;
     windHeld_ = false;
+    sprintHeld_ = false;
     restartPressed_ = false;
     moveX_ = 0.0f;
     moveZ_ = 0.0f;
@@ -70,6 +71,7 @@ void Input::update(bool captureMouse)
         static_cast<float>(held(KEY_INPUT_A, KEY_INPUT_LEFT));
     moveZ_ = static_cast<float>(held(KEY_INPUT_W, KEY_INPUT_UP)) -
         static_cast<float>(held(KEY_INPUT_S, KEY_INPUT_DOWN));
+    sprintHeld_ = CheckHitKey(KEY_INPUT_LSHIFT) == 1 || CheckHitKey(KEY_INPUT_RSHIFT) == 1;
     turn_ = static_cast<float>(CheckHitKey(KEY_INPUT_E) == 1) -
         static_cast<float>(CheckHitKey(KEY_INPUT_Q) == 1);
 
