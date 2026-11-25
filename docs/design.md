@@ -22,7 +22,7 @@ Mọi số liệu nằm trong `src/Config.h`.
 
 ## Thay đổi cơ chế (Phase B)
 
-Người dùng đã đồng ý các thay đổi sau so với bản gốc và mục 5 của `AGENTS.md`:
+Các thay đổi cơ chế so với bản mẫu ban đầu gồm
 
 - **Cú nảy tự động khóa chuyển động ngang.** Khi đáp mạnh, phù thủy bật thẳng lên rồi rơi lại cùng vị trí. Lực rơi giữ cố định. Chuột dành cho camera.
 - **Ngưỡng nảy `BOUNCE_IMPACT_MIN` là 13.** Đáp cùng độ cao thường không nảy. Cú rơi đủ mạnh có thể vượt ngưỡng. Giới hạn là `MAX_BOUNCES = 3`.

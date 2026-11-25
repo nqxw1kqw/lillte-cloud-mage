@@ -18,3 +18,4 @@ Log.txt
 *.tlog
 .env
 .env.*
+AGENTS.md
