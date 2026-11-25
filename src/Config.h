@@ -26,6 +26,8 @@ namespace Config
     constexpr float JUMP_RUN_SPEED = 15.0f;
     constexpr float JUMP_RUNUP_DISTANCE = 3.0f;
     constexpr float GROUND_MOVE_SPEED = 7.0f;
+    constexpr float GROUND_ACCELERATION = 56.0f;
+    constexpr float JUMP_BUFFER_TIME = 0.12f;
     constexpr float GROUND_TURN_SPEED = 2.2f;  // radian mỗi giây
     constexpr float GROUND_STEP_HEIGHT = 0.25f;
     constexpr float AIR_STEER_RATE = 2.0f;
@@ -133,7 +135,8 @@ namespace Config
     constexpr float CAMERA_MIN_PITCH = 0.20f;
     constexpr float CAMERA_MAX_PITCH = 1.25f;
     constexpr float CAMERA_MOUSE_SENSITIVITY = 0.0035f;
-    constexpr float CAMERA_FOLLOW_RATE = 13.0f;
+    constexpr float CAMERA_FOLLOW_RATE = 18.0f;
+    constexpr float CAMERA_VERTICAL_FOLLOW_RATE = 9.0f;
     constexpr float CAMERA_FOV_DEG = 70.0f;
     constexpr float CAMERA_NEAR = 0.1f;
     constexpr float CAMERA_FAR = 400.0f;
@@ -200,7 +203,7 @@ namespace Config
     constexpr float WITCH_JUMP_TAKEOFF_FRAME = 7.0f;
     constexpr float WITCH_LAND_CONTACT_FRAME = 3.0f;
     // Cho phép khung khom người phát khi còn đứng trên mây.
-    constexpr float JUMP_WINDUP = 0.10f;
+    constexpr float JUMP_WINDUP = 0.065f;
     constexpr float WITCH_JUMP_TIME = 0.36f;
     constexpr float WITCH_LAND_TIME = 0.45f;
     constexpr float WITCH_BOUNCE_TIME = 0.25f;

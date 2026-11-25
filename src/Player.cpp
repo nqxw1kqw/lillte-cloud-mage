@@ -49,6 +49,9 @@ void Player::reset(float top)
     launchSpeed_ = 0.0f;
     runupDistance_ = 0.0f;
     runTime_ = 0.0f;
+    groundSpeed_ = 0.0f;
+    jumpBuffer_ = 0.0f;
+    bufferedDirection_ = {};
     bounces_ = 0;
     supportId_ = 0;
     grounded_ = true;
@@ -67,12 +70,15 @@ void Player::walk(float dt, const Vec3& direction, float turn, const CloudField&
     if (length == 0.0f)
     {
         runTime_ = 0.0f;
+        groundSpeed_ = 0.0f;
         yaw_ = std::remainder(yaw_ + turn * Config::GROUND_TURN_SPEED * dt, Config::FULL_TURN);
         return;
     }
 
     yaw_ = std::atan2(direction.x, direction.z);
-    const float step = Config::GROUND_MOVE_SPEED * dt / length;
+    groundSpeed_ = std::min(Config::GROUND_MOVE_SPEED, groundSpeed_ + Config::GROUND_ACCELERATION * dt);
+    const float distance = groundSpeed_ * dt;
+    const float step = distance / length;
     const float x = pos_.x + direction.x * step;
     const float z = pos_.z + direction.z * step;
     float y = 0.0f;
@@ -80,9 +86,9 @@ void Player::walk(float dt, const Vec3& direction, float turn, const CloudField&
     if (clouds.supportAt(supportId_, x, z, y) && std::abs(y - pos_.y) <= Config::GROUND_STEP_HEIGHT)
     {
         pos_ = {x, y, z};
-        runTime_ += dt;
+        runTime_ += dt * groundSpeed_ / Config::GROUND_MOVE_SPEED;
         runupDistance_ = std::min(Config::JUMP_RUNUP_DISTANCE,
-                                  runupDistance_ + Config::GROUND_MOVE_SPEED * dt);
+                                  runupDistance_ + distance);
     }
     else
     {
@@ -99,10 +105,18 @@ float Player::takeoffSpeed() const
 
 void Player::jump(const Vec3& direction)
 {
-    if (!grounded_ || motion_ == Motion::Jump)
+    if (atSea_ || motion_ == Motion::Jump)
     {
         return;
     }
+    if (!grounded_)
+    {
+        // Nhớ một lần bấm sát lúc đáp. Giữ phím không tạo thêm yêu cầu nhảy.
+        jumpBuffer_ = Config::JUMP_BUFFER_TIME;
+        bufferedDirection_ = direction;
+        return;
+    }
+    jumpBuffer_ = 0.0f;
     if (direction.x != 0.0f || direction.z != 0.0f)
     {
         yaw_ = std::atan2(direction.x, direction.z);
@@ -110,6 +124,7 @@ void Player::jump(const Vec3& direction)
     launchYaw_ = yaw_;
     launchSpeed_ = takeoffSpeed();
     runTime_ = 0.0f;
+    groundSpeed_ = 0.0f;
     bounces_ = 0;
     setMotion(Motion::Jump);
 }
@@ -130,6 +145,7 @@ void Player::land(const Cloud& c, const Vec3& point, float impact, int& score)
     {
         grounded_ = true;
         runupDistance_ = 0.0f;
+        groundSpeed_ = 0.0f;
         vel_ = {};
         bounces_ = 0;
         setMotion(Motion::Land);
@@ -169,6 +185,10 @@ void Player::update(float dt, const Vec3& direction, const CloudField& clouds, b
     if (grounded_)
     {
         translate(pos_, clouds.displacement(supportId_, fromTime, toTime));
+        if (jumpBuffer_ > 0.0f)
+        {
+            jump(bufferedDirection_);
+        }
         walk(dt, direction, turn, clouds);
         updateMotion(dt);
         if (motion_ == Motion::Jump && motionTime_ >= Config::JUMP_WINDUP)
@@ -204,7 +224,9 @@ void Player::update(float dt, const Vec3& direction, const CloudField& clouds, b
         }
     }
 
-    rotX_ = std::clamp(-vel_.y * Config::TILT_FACTOR, -Config::TILT_MAX, Config::TILT_MAX);
+    jumpBuffer_ = std::max(0.0f, jumpBuffer_ - dt);
+
+    rotX_ = grounded_ ? 0.0f : std::clamp(-vel_.y * Config::TILT_FACTOR, -Config::TILT_MAX, Config::TILT_MAX);
     const float bank = direction.x * std::cos(yaw_) - direction.z * std::sin(yaw_);
     rotZ_ = grounded_ || bounces_ > 0 ? 0.0f : std::clamp(-0.3f * bank, -Config::TILT_MAX, Config::TILT_MAX);
 }
@@ -277,4 +299,5 @@ void Player::stopAtSea(float surfaceY)
     pos_.y = surfaceY;
     vel_ = {};
     atSea_ = true;
+    jumpBuffer_ = 0.0f;
 }

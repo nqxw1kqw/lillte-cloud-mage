@@ -50,7 +50,7 @@ void Game::action()
 void Game::Update(float dt)
 {
     input_.update(!confirmQuit_ && state_ != State::Over);
-    paused_ = state_ == State::Play && !input_.windowActive();
+    paused_ = state_ != State::Over && !input_.windowActive();
 
     if (input_.quitPressed())
     {

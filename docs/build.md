@@ -46,7 +46,7 @@ Nếu đường dẫn có dấu cách, đặt cả tham số trong ngoặc và *
 
 - **WASD / phím mũi tên:** chạy theo hướng camera. **Q/E:** xoay phù thủy tại chỗ.
 - **Chuột:** xoay camera góc nhìn thứ ba trực tiếp. Con trỏ trở lại khi tạm dừng, chuyển cửa sổ hoặc thua.
-- **Space / chuột trái:** bật nhảy. Chạy tới gần mép bệ để lấy đà rồi nhảy sang bệ kế tiếp. Có thể dừng ở mép để căn camera mà vẫn giữ đà. Khi ở trên không, WASD chỉnh hướng nhẹ. Lực rơi giữ cố định.
+- **Space / chuột trái:** bật nhảy. Chạy tới gần mép bệ để lấy đà rồi nhảy sang bệ kế tiếp. Có thể dừng ở mép để căn camera mà vẫn giữ đà. Khi ở trên không, WASD chỉnh hướng nhẹ. Lực rơi giữ cố định. Có thể bấm nhảy sớm tối đa khoảng 0,12 giây trước khi đáp để nối cú nhảy tiếp theo. Thả phím di chuyển sẽ dừng chạy ngay, còn bệ mây vẫn mang nhân vật theo.
 - **Dấu đáp:** lúc đứng, đĩa vàng cho biết điểm có thể đáp theo hướng chuẩn bị nhảy. Khi đang bay, dấu cập nhật theo điều khiển hiện tại. Mây hoặc phù thủy ở phía trước có thể che khuất dấu. Mô phỏng dự đoán và chuyển động thật cùng dùng bước 60 Hz.
 - **Esc** khi đang chơi: hiện hộp hỏi "Thoát game?" và dừng ván chơi. Nhấn **Esc** lần nữa để thoát, hoặc **Space**/**chuột trái** để chơi tiếp (cú bấm này không làm phù thủy nhảy).
 - **Esc** ở màn hình chờ hoặc sau khi thua: thoát ngay.

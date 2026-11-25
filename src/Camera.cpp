@@ -44,8 +44,9 @@ void Camera::update(float dt, const Vec3& playerPos)
 {
     // Chỉ làm mượt điểm bám để camera luôn xoay đúng quanh phù thủy.
     const float k = 1.0f - std::exp(-Config::CAMERA_FOLLOW_RATE * dt);
+    const float verticalK = 1.0f - std::exp(-Config::CAMERA_VERTICAL_FOLLOW_RATE * dt);
     focus_.x += (playerPos.x - focus_.x) * k;
-    focus_.y += (playerPos.y - focus_.y) * k;
+    focus_.y += (playerPos.y - focus_.y) * verticalK;
     focus_.z += (playerPos.z - focus_.z) * k;
     layout();
 }

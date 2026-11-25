@@ -68,6 +68,9 @@ private:
     float runTime_ = 0.0f;
     float runupDistance_ = 0.0f;
     float launchSpeed_ = 0.0f;
+    float groundSpeed_ = 0.0f;
+    float jumpBuffer_ = 0.0f;
+    Vec3 bufferedDirection_{};
     int bounces_ = 0;
     int supportId_ = 0;
     bool grounded_ = true;
