@@ -46,6 +46,8 @@ Nếu đường dẫn có dấu cách, đặt cả tham số trong ngoặc và *
 
 - **WASD / phím mũi tên:** chạy theo hướng camera. **Q/E:** xoay phù thủy tại chỗ.
 - **Chuột:** xoay camera góc nhìn thứ ba trực tiếp. Con trỏ trở lại khi tạm dừng, chuyển cửa sổ hoặc thua.
+- **Chuột phải:** ngắm đám mây viền xanh kế tiếp, giữ nút để kéo, quay camera về hướng đường đi và thả ra để đặt bệ. Chỉ mây viền xanh kế tiếp nhận phép.
+- **R:** chơi lại toàn màn và khôi phục vị trí các mây.
 - **Space / chuột trái:** bật nhảy. Chạy tới gần mép bệ để lấy đà rồi nhảy sang bệ kế tiếp. Có thể dừng ở mép để căn camera mà vẫn giữ đà. Khi ở trên không, WASD chỉnh hướng nhẹ. Lực rơi giữ cố định. Có thể bấm nhảy sớm tối đa khoảng 0,12 giây trước khi đáp để nối cú nhảy tiếp theo. Thả phím di chuyển sẽ dừng chạy ngay, còn bệ mây vẫn mang nhân vật theo.
 - **Dấu đáp:** lúc đứng, đĩa vàng cho biết điểm có thể đáp theo hướng chuẩn bị nhảy. Khi đang bay, dấu cập nhật theo điều khiển hiện tại. Mây hoặc phù thủy ở phía trước có thể che khuất dấu. Mô phỏng dự đoán và chuyển động thật cùng dùng bước 60 Hz.
 - **Esc** khi đang chơi: hiện hộp hỏi "Thoát game?" và dừng ván chơi. Nhấn **Esc** lần nữa để thoát, hoặc **Space**/**chuột trái** để chơi tiếp (cú bấm này không làm phù thủy nhảy).
@@ -55,5 +57,5 @@ Nếu đường dẫn có dấu cách, đặt cả tham số trong ngoặc và *
 
 ## Ghi chú
 
-- Game dùng `witch_inplace.x` và bộ 10 model trong `assets/models/clouds_v2/`. Năm mẫu mặt rộng làm bệ chạy và đáp. Năm mẫu còn lại nằm hai bên đường mây hoặc ở tầng nền. Cứ bốn bệ có một bước leo cao hơn.
+- Game dùng `witch_inplace.x` và bộ 10 model trong `assets/models/clouds_v2/`. Năm mẫu mặt rộng làm bệ chạy và đáp. Năm mẫu còn lại nằm hai bên đường mây hoặc ở tầng nền. Màn thử gồm bảy bệ leo cao với hai chỗ đứt đường cần kéo mây để vượt. Đáp lên bệ cuối có quả cầu vàng sẽ hoàn thành màn.
 - Hệ trục: DxLib dùng hệ tay trái, nên mọi tọa độ Z của bản Three.js được đổi dấu (`z_dx = -z_three`). Phía trước là +Z.

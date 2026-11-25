@@ -22,6 +22,8 @@ void Input::update(bool captureMouse)
 
     actionPressed_ = false;
     quitPressed_ = false;
+    windHeld_ = false;
+    restartPressed_ = false;
     moveX_ = 0.0f;
     moveZ_ = 0.0f;
     turn_ = 0.0f;
@@ -35,7 +37,19 @@ void Input::update(bool captureMouse)
 
     const bool space = CheckHitKey(KEY_INPUT_SPACE) == 1;
     const bool esc = CheckHitKey(KEY_INPUT_ESCAPE) == 1;
-    const bool left = (GetMouseInput() & MOUSE_INPUT_LEFT) != 0;
+    const bool restart = CheckHitKey(KEY_INPUT_R) == 1;
+    const int buttons = GetMouseInput();
+    const bool left = (buttons & MOUSE_INPUT_LEFT) != 0;
+    const bool right = (buttons & MOUSE_INPUT_RIGHT) != 0;
+    if (focusRegained || !captureMouse)
+    {
+        windArmed_ = false;
+    }
+    if (!right)
+    {
+        windArmed_ = true;
+    }
+    windHeld_ = captureMouse && !focusRegained && right && windArmed_;
     int mx = 0;
     int my = 0;
     const bool hasMousePosition = GetMousePoint(&mx, &my) == 0;
@@ -43,9 +57,11 @@ void Input::update(bool captureMouse)
         my >= 0 && my < Config::WINDOW_H;
     actionPressed_ = !focusRegained && ((space && !prevSpace_) || (inClient && left && !prevLeft_));
     quitPressed_ = !focusRegained && esc && !prevEsc_;
+    restartPressed_ = !focusRegained && restart && !prevRestart_;
     prevSpace_ = space;
     prevLeft_ = left;
     prevEsc_ = esc;
+    prevRestart_ = restart;
 
     auto held = [](int key, int arrow) {
         return CheckHitKey(key) == 1 || CheckHitKey(arrow) == 1;

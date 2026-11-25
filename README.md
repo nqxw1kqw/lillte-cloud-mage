@@ -1,13 +1,14 @@
 ﻿# lillte cloud mage
 
-Game C++17 và DxLib dành cho Windows. Điều khiển một phù thủy chạy lấy đà trên những bệ mây trôi, nhảy qua khoảng trống và leo lên các tầng mây cao hơn.
+Game C++17 và DxLib dành cho Windows. Điều khiển một phù thủy chạy lấy đà trên những bệ mây trôi, nhảy qua khoảng trống và leo lên các tầng mây cao hơn. Màn chơi hiện tại gồm bảy bệ, với hai chỗ đứt đường cần dùng phép gió để kéo mây vào làm cầu.
 
 ## Điều khiển
 
 - WASD hoặc phím mũi tên để chạy theo góc camera.
 - Rê chuột để xoay camera góc nhìn thứ ba.
 - Space hoặc chuột trái để nhảy. Chạy tới gần mép mây để lấy đà.
-- Q/E để xoay nhân vật tại chỗ.
+- Giữ chuột phải khi ngắm mây viền xanh để kéo. Rê camera về phía muốn đặt bệ rồi thả nút để dừng.
+- Q/E để xoay nhân vật tại chỗ. R để chơi lại màn.
 - Esc khi đang chơi để mở hộp tạm dừng và xác nhận thoát.
 - Sau khi thua, bấm Space để về mây đầu rồi bấm lần nữa để nhảy.
 

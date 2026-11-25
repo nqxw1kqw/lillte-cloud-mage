@@ -49,6 +49,7 @@ public:
     float yaw() const { return yaw_; }
     float runTime() const { return runTime_; }
     bool grounded() const { return grounded_; }
+    int supportingCloud() const { return supportId_; }
     Motion motion() const { return motion_; }
     float motionTime() const { return motionTime_; }
 

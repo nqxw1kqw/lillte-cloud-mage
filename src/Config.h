@@ -68,7 +68,6 @@ namespace Config
         CloudModel{L"assets/models/clouds_v2/ns_virga.x", 2.3f, 2.1f, 2.2f, L"cv2_virga"}
     };
     constexpr size_t CLOUD_PLATFORM_COUNT = 5;
-    constexpr size_t CLOUD_START_MODEL = 0;
     constexpr float CLOUD_HALF_W = 9.6f;
     constexpr float CLOUD_HALF_D = 11.1f;
     constexpr float CLOUD_TOP_OFFSET = 0.01f;
@@ -103,14 +102,6 @@ namespace Config
     constexpr int CLOUD_PUFF_RINGS = 10;
     // Chỉ dùng mặt đủ thoải để đứng. Loại vách nghiêng trên 45 độ.
     constexpr float CLOUD_MAX_LANDING_SLOPE_SQUARED = 1.0f;
-    constexpr float CLOUD_GAP_MIN = 24.0f; // khoảng cách giữa tâm hai bệ
-    constexpr float CLOUD_GAP_MAX = 24.8f;
-    constexpr float CLOUD_DX_RANGE = 3.0f;
-    constexpr float CLOUD_DY_MIN = 0.95f;
-    constexpr float CLOUD_DY_MAX = 1.35f;
-    constexpr int CLOUDS_PER_TIER = 4;
-    constexpr float CLOUD_TIER_BOOST = 0.55f;
-    constexpr float CLOUD_X_LIMIT = 14.0f;
     constexpr int CLOUD_DECOR_PER_PLATFORM = 2;
     constexpr float CLOUD_DECOR_SIDE = 28.0f;
     constexpr float CLOUD_DECOR_SIDE_VARIATION = 4.0f;
@@ -119,12 +110,44 @@ namespace Config
     constexpr float CLOUD_DECOR_DEPTH = 13.0f;
     constexpr float CLOUD_DECOR_UP = 14.0f;
     constexpr float CLOUD_DECOR_DOWN = -8.0f;
-    constexpr float SPAWN_AHEAD = 160.0f;
     constexpr float DESPAWN_BEHIND = 40.0f;
     // Chừa thêm ô cho mây mới sinh và phần mép còn trong tầm người chơi.
     constexpr int CLOUD_POOL_SIZE = 32;
-    static_assert(CLOUD_POOL_SIZE > (SPAWN_AHEAD + DESPAWN_BEHIND) / CLOUD_GAP_MIN + 3,
-                  "CLOUD_POOL_SIZE quá nhỏ so với số mây sống cùng lúc");
+    struct WindLessonCloud
+    {
+        float x, y, z;
+        size_t model;
+        bool movable;
+    };
+    constexpr std::array WIND_LESSON{
+        WindLessonCloud{0.0f, 0.0f, 0.0f, 0, false},
+        WindLessonCloud{0.0f, 1.2f, 24.4f, 1, false},
+        WindLessonCloud{38.0f, 2.4f, 48.8f, 2, true},
+        WindLessonCloud{0.0f, 3.6f, 73.2f, 3, false},
+        WindLessonCloud{-38.0f, 4.8f, 97.6f, 4, true},
+        WindLessonCloud{0.0f, 6.0f, 122.0f, 0, false},
+        WindLessonCloud{0.0f, 7.2f, 146.4f, 1, false}
+    };
+    constexpr float WIND_RANGE = 65.0f;
+    constexpr float WIND_AIM_RADIUS = 8.0f;
+    constexpr float WIND_PLACE_DISTANCE = 23.0f;
+    constexpr float WIND_MAX_OFFSET = 44.0f;
+    constexpr float WIND_RESPONSE = 1.7f;
+    constexpr int WIND_COLOR = 0x7fe9ed;
+    constexpr int WIND_ACTIVE_COLOR = 0xffd27f;
+    constexpr int WIND_HUD_Y = 50;
+    constexpr float WIND_RING_RADIUS = 4.0f;
+    constexpr int WIND_RING_SEGMENTS = 36;
+    constexpr float WIND_RING_HEIGHT = 0.2f;
+    constexpr float WIND_BEAM_HEIGHT = 1.5f;
+    constexpr float WIND_PULSE_RATE = 3.0f;
+    constexpr int WIND_BEAM_SEGMENTS = 14;
+    constexpr float WIND_BEAM_SWIRL = 0.45f;
+    constexpr float WIND_GOAL_HEIGHT = 3.0f;
+    constexpr float WIND_GOAL_RADIUS = 0.75f;
+    constexpr int WIND_GOAL_DIVISIONS = 12;
+    constexpr int WIND_AIM_CROSS_SIZE = 5;
+    static_assert(CLOUD_POOL_SIZE >= WIND_LESSON.size(), "Bộ đệm phải chứa đủ các bệ của màn gió");
 
     // ===== Camera =====
     constexpr float FULL_TURN = 6.2831853f;

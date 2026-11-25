@@ -42,6 +42,8 @@ public:
     void drawOverMessage(int score, bool canRestart);
     void drawPausedMessage();
     void drawQuitConfirmMessage();
+    void drawWindLesson(const Player& player, const CloudField& clouds, int targetId, bool pulling);
+    void drawWonMessage(bool canRestart);
 
 private:
     // Đỉnh của sao dùng kiểu VERTEX3D của DxLib; giấu trong Render.cpp để

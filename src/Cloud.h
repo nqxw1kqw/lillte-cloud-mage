@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <array>
-#include <random>
 #include <vector>
 
 #include "Config.h"
@@ -50,20 +49,27 @@ struct Cloud
     float y = 0.0f;
     float z = 0.0f;
     size_t model = 0;
+    bool movable = false;
+    Vec3 windFrom{};
+    Vec3 windTarget{};
+    double windStarted = 0.0;
+    Vec3 windOffsetAt(double time) const;
     Vec3 positionAt(double time) const;
 };
 
 class CloudField
 {
 public:
-    CloudField();
-
     void reset();
     void extend(float playerZ);
     void advance(float dt);
     double time() const { return time_; }
     double previousTime() const { return previousTime_; }
     Vec3 displacement(int cloudId, double from, double to) const;
+    int aimCloud(const Vec3& eye, const Vec3& look, const Vec3& player, int supportId) const;
+    void pullCloud(int cloudId, const Vec3& destination);
+    void releaseCloud(int cloudId);
+    Vec3 cloudPosition(int id) const;
 
     CloudSurface& surface(size_t model) { return surfaces_[model]; }
     const CloudSurface& surface(size_t model) const { return surfaces_[model]; }
@@ -77,9 +83,7 @@ public:
                              CloudContact& contact) const;
 
 private:
-    float rnd(float a, float b);
     const Cloud* find(int id) const;
-    const Cloud& last() const { return at(count_ - 1); }
     void addCloud(float x, float y, float z);
 
     std::array<Cloud, Config::CLOUD_POOL_SIZE> pool_{};
@@ -89,5 +93,4 @@ private:
     int nextId_ = 0;
     double time_ = 0.0;
     double previousTime_ = 0.0;
-    std::mt19937 rng_;
 };

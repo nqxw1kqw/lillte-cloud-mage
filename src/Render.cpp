@@ -915,12 +915,103 @@ void Render::drawCenterLines(const wchar_t* const* lines, const int* fonts, int 
     }
 }
 
+void Render::drawWindLesson(const Player& player, const CloudField& clouds, int targetId, bool pulling)
+{
+    const auto cyan = hexColor(Config::WIND_COLOR);
+    const auto gold = hexColor(Config::WIND_ACTIVE_COLOR);
+    const auto white = GetColor(255, 255, 255);
+    const auto edge = GetColor(0, 0, 0);
+    const float phase = static_cast<float>(clouds.time()) * Config::WIND_PULSE_RATE;
+    for (int i = 0; i < clouds.count(); ++i)
+    {
+        const Cloud& cloud = clouds.at(i);
+        if (!cloud.movable)
+        {
+            continue;
+        }
+        const Vec3 p = cloud.positionAt(clouds.time());
+        const bool selected = cloud.id == targetId;
+        const unsigned int color = selected ? gold : cyan;
+        const float radius = Config::WIND_RING_RADIUS;
+        for (int j = 0; j < Config::WIND_RING_SEGMENTS; ++j)
+        {
+            const float a = Config::FULL_TURN * j / Config::WIND_RING_SEGMENTS;
+            const float b = Config::FULL_TURN * (j + 1) / Config::WIND_RING_SEGMENTS;
+            const float y = p.y + Config::WIND_RING_HEIGHT;
+            check(DrawLine3D(VGet(p.x + radius * std::cos(a), y, p.z + radius * std::sin(a)),
+                             VGet(p.x + radius * std::cos(b), y, p.z + radius * std::sin(b)), color),
+                  L"Vòng mây có thể kéo");
+        }
+    }
+
+    const Vec3 goal = clouds.cloudPosition(static_cast<int>(Config::WIND_LESSON.size()) - 1);
+    check(SetUseLighting(FALSE), L"Tắt ánh sáng quả cầu đích");
+    check(DrawSphere3D(VGet(goal.x, goal.y + Config::WIND_GOAL_HEIGHT, goal.z), Config::WIND_GOAL_RADIUS,
+                        Config::WIND_GOAL_DIVISIONS, gold, gold, TRUE), L"Vẽ quả cầu đích");
+    if (pulling && targetId != -1)
+    {
+        const Vec3 p = player.position();
+        const Vec3 target = clouds.cloudPosition(targetId);
+        VECTOR previous = VGet(p.x, p.y + Config::WIND_BEAM_HEIGHT, p.z);
+        for (int i = 1; i <= Config::WIND_BEAM_SEGMENTS; ++i)
+        {
+            const float t = static_cast<float>(i) / Config::WIND_BEAM_SEGMENTS;
+            const float spiral = Config::WIND_BEAM_SWIRL * std::sin(t * PI_F);
+            const float angle = phase + t * Config::FULL_TURN;
+            const VECTOR next = VGet(p.x + (target.x - p.x) * t + spiral * std::cos(angle),
+                                      p.y + Config::WIND_BEAM_HEIGHT + (target.y - p.y) * t + spiral * std::sin(angle),
+                                      p.z + (target.z - p.z) * t);
+            check(DrawLine3D(previous, next, cyan), L"Vẽ luồng gió");
+            previous = next;
+        }
+    }
+    check(SetUseLighting(TRUE), L"Khôi phục ánh sáng sau phép gió");
+
+    const int cx = Config::WINDOW_W / 2;
+    const int cy = Config::WINDOW_H / 2;
+    const int cross = Config::WIND_AIM_CROSS_SIZE;
+    const auto color = targetId == -1 ? white : gold;
+    check(DrawLine(cx - cross, cy, cx + cross, cy, color), L"Tâm ngắm ngang");
+    check(DrawLine(cx, cy - cross, cx, cy + cross, color), L"Tâm ngắm dọc");
+
+    const wchar_t* objective = L"Tới quả cầu vàng ở bệ cuối";
+    const int support = player.supportingCloud();
+    if (support == 0)
+    {
+        objective = L"Chạy lấy đà và nhảy tới bệ đầu phía trước";
+    }
+    else if (support == 1)
+    {
+        objective = L"Đường phía trước bị đứt: kéo mây viền xanh về làm cầu";
+    }
+    else if (support == 2)
+    {
+        objective = L"Đường đã nối: chạy lấy đà để tới bệ nghỉ phía trước";
+    }
+    else if (support == 3)
+    {
+        objective = L"Tìm đám mây viền xanh bên trái để nối đường lên tầng trên";
+    }
+    const wchar_t* hint = pulling ? L"Đang kéo mây · Rê chuột để chọn chỗ đặt · Thả chuột phải để dừng" :
+        (targetId != -1 ? L"Giữ chuột phải để kéo đám mây đang ngắm" : L"Ngắm mây viền xanh · Chuột phải: kéo · R: chơi lại màn");
+    check(DrawStringToHandle(12, Config::WIND_HUD_Y, objective, white, fontMsgSmall_, edge), L"Mục tiêu màn gió");
+    check(DrawStringToHandle(12, Config::WIND_HUD_Y + Config::FONT_SIZE_MSG_SMALL + 8, hint,
+                             color, fontMsgSmall_, edge), L"Hướng dẫn phép gió");
+}
+
+void Render::drawWonMessage(bool canRestart)
+{
+    const wchar_t* lines[] = {L"Đã nối đường qua tầng mây!", L"Nhấn Space để chơi lại"};
+    const int fonts[] = {fontMsg_, fontMsgSmall_};
+    drawCenterLines(lines, fonts, canRestart ? 2 : 1);
+}
+
 void Render::drawReadyMessage()
 {
     const wchar_t* lines[] = {
-        L"Chạy tới mép mây rồi nhảy",
+        L"Dùng gió nối đường qua mây",
         L"WASD / phím mũi tên: chạy · Space hoặc chuột trái: nhảy",
-        L"Rê chuột: xoay camera · Q/E: xoay phù thủy tại chỗ"
+        L"Rê chuột: ngắm · Giữ chuột phải: kéo mây viền xanh"
     };
     const int fonts[] = { fontMsg_, fontMsgSmall_, fontMsgSmall_ };
     drawCenterLines(lines, fonts, 3, Config::READY_HINT_CENTER_Y);

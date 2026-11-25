@@ -18,7 +18,6 @@ Mọi số liệu nằm trong `src/Config.h`.
 - HemisphereLight được xấp xỉ bằng ánh sáng môi trường thấp, đèn trăng và một đèn phụ chiếu từ phía camera.
 - Sao vẽ bằng một cụm hình vuông hướng camera. Kích thước biểu kiến thay đổi theo khoảng cách.
 - Chữ có viền đen thay cho `text-shadow`.
-- Thanh lực rơi có góc vuông, không bo tròn.
 
 ## Thay đổi cơ chế (Phase B)
 
@@ -31,5 +30,24 @@ Các thay đổi cơ chế so với bản mẫu ban đầu gồm
 ## Model và bề mặt đáp
 
 - Phù thủy dùng `witch_inplace.x` và sáu clip đứng, nhảy, bay, rơi, đáp và nảy. Điểm gốc model là vị trí vật lý của nhân vật.
-- Chặng chơi luân phiên năm bệ rộng của bộ mây v2. Bệ tiếp theo luôn cao hơn, cứ bốn bệ tăng thêm một bước để chia tầng. Năm mẫu còn lại làm mây nền ở nhiều độ cao và ngoài đường đáp. Tỉ lệ vẽ và lưới va chạm của bệ giống nhau. Các múi phồng bổ sung nằm dưới mặt chạy. Mỗi bệ trôi theo nhịp riêng trên ba trục. Người đang đứng hoặc nảy trên bệ nhận độ dời của bệ. Dấu đáp dự đoán điểm chạm trong tương lai và vẽ điểm đó trên vị trí hiện tại của mây. Khoảng trống giữa các bệ buộc người chơi tiến gần mép trước khi bật nhảy. Khi khởi tạo, DxLib lấy lưới từng model ở gốc. Game giữ các tam giác hướng lên để tìm mặt trên. Chỉ các mặt lộ ra có độ dốc tối đa 45 độ mới nhận đáp. Mỗi bước rơi chọn giao điểm hợp lệ sớm nhất trên đoạn chuyển động, kể cả khi vị trí cuối bước đã qua mép mây.
+- Màn thử dùng bảy bệ leo cao theo bố cục cố định, gồm năm mẫu mặt rộng của bộ mây v2. Năm mẫu còn lại làm mây nền ở nhiều độ cao và ngoài đường đáp. Tỉ lệ vẽ và lưới va chạm của bệ giống nhau. Các múi phồng bổ sung nằm dưới mặt chạy. Mỗi bệ trôi theo nhịp riêng trên ba trục. Người đang đứng hoặc nảy trên bệ nhận độ dời của bệ. Dấu đáp dự đoán điểm chạm trong tương lai và vẽ điểm đó trên vị trí hiện tại của mây. Khoảng trống giữa các bệ buộc người chơi tiến gần mép trước khi bật nhảy. Khi khởi tạo, DxLib lấy lưới từng model ở gốc. Game giữ các tam giác hướng lên để tìm mặt trên. Chỉ các mặt lộ ra có độ dốc tối đa 45 độ mới nhận đáp. Mỗi bước rơi chọn giao điểm hợp lệ sớm nhất trên đoạn chuyển động, kể cả khi vị trí cuối bước đã qua mép mây.
 - Mặt biển và ngưỡng thua cùng ở Y = -20. HUD hiển thị số thứ tự mây xa nhất đã chạm, kể cả khi người chơi bay qua một mây trung gian.
+
+## Màn thử phép gió
+
+Câu hỏi cần kiểm chứng là người chơi có thấy việc chọn chỗ đặt mây thú vị hơn chỉ nhảy theo đường sẵn có hay không. Kết luận về độ vui cần phản hồi chơi tay.
+
+| Bệ | Nhịp chơi | Đường sang bệ sau |
+|---|---|---|
+| 0 | Làm quen chạy và lấy đà | Nhảy thường tới 1 |
+| 1 | Dạy phép gió trong lúc đứng an toàn | Kéo mây 2 bên phải vào đường đi |
+| 2 | Thử bệ do người chơi đặt | Nhảy tới 3 |
+| 3 | Nghỉ và quan sát chỗ đứt tiếp theo | Kéo mây 4 bên trái vào đường đi |
+| 4 | Áp dụng lại phép gió | Nhảy tới 5 |
+| 5 | Đoạn kết | Nhảy tới quả cầu vàng ở 6 |
+| 6 | Hoàn thành | Space chơi lại sau nhịp nghỉ ngắn |
+
+- Mây viền xanh là mục tiêu của phép. Giữ chuột phải khóa mây kế tiếp đang ngắm. Rê camera để đặt mây phía trước bệ đang đứng, thả nút để dừng dịch chuyển. Quỹ đạo nhấp nhô tự nhiên tiếp tục sau khi đặt.
+- Vị trí phép được tính theo hàm đáp ứng theo thời gian trong Cloud. Cùng một hàm được dùng cho hình vẽ, chuyển động người đứng trên mây và dự đoán đáp. Tất cả thay đổi chạy trong bước vật lý 60 Hz.
+- Mây đang đỡ nhân vật được loại khỏi mục tiêu. Vị trí kéo được giới hạn quanh vị trí ban đầu. R khôi phục toàn màn nếu đặt sai.
+- Phản hồi gồm vòng chọn đổi màu, luồng gió nối tới mây và trạng thái đang kéo. Mây nền giữ vai trò trang trí.

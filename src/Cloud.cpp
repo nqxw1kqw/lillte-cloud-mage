@@ -106,26 +106,23 @@ bool CloudSurface::cross(const Vec3& from, const Vec3& to, CloudContact& contact
     return hit;
 }
 
+Vec3 Cloud::windOffsetAt(double time) const
+{
+    const float remaining = static_cast<float>(std::exp(-Config::WIND_RESPONSE * std::max(0.0, time - windStarted)));
+    return {windTarget.x + (windFrom.x - windTarget.x) * remaining,
+            0.0f, windTarget.z + (windFrom.z - windTarget.z) * remaining};
+}
+
 Vec3 Cloud::positionAt(double time) const
 {
+    const Vec3 offset = windOffsetAt(time);
     const double phase = id * static_cast<double>(Config::CLOUD_DRIFT_PHASE);
     auto wave = [time](float range, float rate, double offset) {
         return range * static_cast<float>(std::sin(time * rate + offset));
     };
-    return {x + wave(Config::CLOUD_DRIFT_X, Config::CLOUD_DRIFT_RATE_X, phase),
+    return {x + offset.x + wave(Config::CLOUD_DRIFT_X, Config::CLOUD_DRIFT_RATE_X, phase),
             y + wave(Config::CLOUD_DRIFT_Y, Config::CLOUD_DRIFT_RATE_Y, phase * 1.4),
-            z + wave(Config::CLOUD_DRIFT_Z, Config::CLOUD_DRIFT_RATE_Z, phase * 0.7)};
-}
-
-CloudField::CloudField()
-    : rng_(std::random_device{}())
-{
-}
-
-float CloudField::rnd(float a, float b)
-{
-    std::uniform_real_distribution<float> dist(a, b);
-    return dist(rng_);
+            z + offset.z + wave(Config::CLOUD_DRIFT_Z, Config::CLOUD_DRIFT_RATE_Z, phase * 0.7)};
 }
 
 void CloudField::reset()
@@ -135,7 +132,87 @@ void CloudField::reset()
     nextId_ = 0;
     time_ = 0.0;
     previousTime_ = 0.0;
-    addCloud(0.0f, 0.0f, 0.0f);
+    for (const auto& entry : Config::WIND_LESSON)
+    {
+        addCloud(entry.x, entry.y, entry.z);
+    }
+}
+
+Vec3 CloudField::cloudPosition(int id) const
+{
+    const Cloud* cloud = find(id);
+    return cloud != nullptr ? cloud->positionAt(time_) : Vec3{};
+}
+
+int CloudField::aimCloud(const Vec3& eye, const Vec3& look, const Vec3& player, int supportId) const
+{
+    const Vec3 ray{look.x - eye.x, look.y - eye.y, look.z - eye.z};
+    const float length = std::sqrt(ray.x * ray.x + ray.y * ray.y + ray.z * ray.z);
+    if (length == 0.0f)
+    {
+        return -1;
+    }
+    int selected = -1;
+    float nearest = Config::WIND_RANGE;
+    for (int i = 0; i < count_; ++i)
+    {
+        const Cloud& cloud = at(i);
+        if (!cloud.movable || cloud.id != supportId + 1)
+        {
+            continue;
+        }
+        const Vec3 p = cloud.positionAt(time_);
+        const float dx = p.x - player.x;
+        const float dy = p.y - player.y;
+        const float dz = p.z - player.z;
+        if (dx * dx + dy * dy + dz * dz > Config::WIND_RANGE * Config::WIND_RANGE)
+        {
+            continue;
+        }
+        const Vec3 delta{p.x - eye.x, p.y - eye.y, p.z - eye.z};
+        const float depth = (delta.x * ray.x + delta.y * ray.y + delta.z * ray.z) / length;
+        const float distanceSquared = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z - depth * depth;
+        if (depth > 0.0f && depth < nearest && distanceSquared <= Config::WIND_AIM_RADIUS * Config::WIND_AIM_RADIUS)
+        {
+            nearest = depth;
+            selected = cloud.id;
+        }
+    }
+    return selected;
+}
+
+void CloudField::pullCloud(int cloudId, const Vec3& destination)
+{
+    const int index = cloudId - first().id;
+    if (index < 0 || index >= count_ || !at(index).movable)
+    {
+        return;
+    }
+    Cloud& cloud = pool_[static_cast<size_t>((head_ + index) % Config::CLOUD_POOL_SIZE)];
+    const Vec3 current = cloud.windOffsetAt(time_);
+    Vec3 target{destination.x - cloud.x, 0.0f, destination.z - cloud.z};
+    const float radius = std::hypot(target.x, target.z);
+    if (radius > Config::WIND_MAX_OFFSET)
+    {
+        target.x *= Config::WIND_MAX_OFFSET / radius;
+        target.z *= Config::WIND_MAX_OFFSET / radius;
+    }
+    cloud.windFrom = current;
+    cloud.windTarget = target;
+    cloud.windStarted = time_;
+}
+
+void CloudField::releaseCloud(int cloudId)
+{
+    const int index = cloudId - first().id;
+    if (index < 0 || index >= count_)
+    {
+        return;
+    }
+    Cloud& cloud = pool_[static_cast<size_t>((head_ + index) % Config::CLOUD_POOL_SIZE)];
+    cloud.windFrom = cloud.windOffsetAt(time_);
+    cloud.windTarget = cloud.windFrom;
+    cloud.windStarted = time_;
 }
 
 void CloudField::advance(float dt)
@@ -205,8 +282,8 @@ const Cloud* CloudField::findLanding(const Vec3& from, const Vec3& to, double fr
     {
         const Cloud& c = at(i);
         // Loại bệ ở xa bằng bao ngoài của cả quỹ đạo trước khi tính vị trí hai đầu bước.
-        constexpr float halfW = Config::CLOUD_HALF_W + Config::CLOUD_DRIFT_X;
-        constexpr float halfD = Config::CLOUD_HALF_D + Config::CLOUD_DRIFT_Z;
+        constexpr float halfW = Config::CLOUD_HALF_W + Config::CLOUD_DRIFT_X + Config::WIND_MAX_OFFSET;
+        constexpr float halfD = Config::CLOUD_HALF_D + Config::CLOUD_DRIFT_Z + Config::WIND_MAX_OFFSET;
         if (std::min(from.x, to.x) > c.x + halfW || std::max(from.x, to.x) < c.x - halfW ||
             std::min(from.z, to.z) > c.z + halfD || std::max(from.z, to.z) < c.z - halfD ||
             std::min(from.y, to.y) > c.y + Config::CLOUD_TOP_OFFSET + Config::CLOUD_DRIFT_Y ||
@@ -248,34 +325,18 @@ void CloudField::addCloud(float x, float y, float z)
     Cloud& c = pool_[static_cast<size_t>((head_ + count_) % Config::CLOUD_POOL_SIZE)];
     ++count_;
 
+    c = Cloud{};
     c.id = nextId_++;
     c.x = x;
     c.y = y;
     c.z = z;
-    if (c.id == 0)
-    {
-        c.model = Config::CLOUD_START_MODEL;
-    }
-    else
-    {
-        // Luân phiên đủ năm hình mây ngay trong đoạn leo đầu tiên.
-        c.model = static_cast<size_t>(c.id) % Config::CLOUD_PLATFORM_COUNT;
-    }
+    const auto& entry = Config::WIND_LESSON[static_cast<size_t>(c.id)];
+    c.model = entry.model;
+    c.movable = entry.movable;
 }
 
 void CloudField::extend(float playerZ)
 {
-    while (last().z < playerZ + Config::SPAWN_AHEAD)
-    {
-        const Cloud& p = last();
-        const float nx = std::clamp(p.x + rnd(-Config::CLOUD_DX_RANGE, Config::CLOUD_DX_RANGE),
-                                    -Config::CLOUD_X_LIMIT, Config::CLOUD_X_LIMIT);
-        const float tier = nextId_ % Config::CLOUDS_PER_TIER == 0 ? Config::CLOUD_TIER_BOOST : 0.0f;
-        const float ny = p.y + rnd(Config::CLOUD_DY_MIN, Config::CLOUD_DY_MAX) + tier;
-        const float nz = p.z + rnd(Config::CLOUD_GAP_MIN, Config::CLOUD_GAP_MAX);
-        addCloud(nx, ny, nz);
-    }
-
     while (count_ > 1 && first().z < playerZ - Config::DESPAWN_BEHIND)
     {
         head_ = (head_ + 1) % Config::CLOUD_POOL_SIZE;

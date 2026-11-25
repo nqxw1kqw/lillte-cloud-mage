@@ -14,7 +14,8 @@ public:
     {
         Ready,
         Play,
-        Over
+        Over,
+        Won
     };
 
     // Gọi sau DxLib_Init. Trả về false nếu không thiết lập được phần vẽ;
@@ -45,6 +46,9 @@ private:
     LandingMarker landingMarker_{};
     int overTicks_ = 0;
     double physicsTime_ = 0.0;
+    int windTarget_ = -1;
+    int heldCloud_ = -1;
+    bool pullingWind_ = false;
     bool paused_ = false;
     bool confirmQuit_ = false;
     bool quitRequested_ = false;

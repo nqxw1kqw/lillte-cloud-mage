@@ -23,6 +23,9 @@ void Game::Reset()
     landingMarker_ = LandingMarker{};
     overTicks_ = 0;
     physicsTime_ = 0.0;
+    windTarget_ = -1;
+    heldCloud_ = -1;
+    pullingWind_ = false;
     paused_ = false;
     confirmQuit_ = false;
     state_ = State::Ready;
@@ -30,7 +33,7 @@ void Game::Reset()
 
 void Game::action()
 {
-    if (state_ == State::Over)
+    if (state_ == State::Over || state_ == State::Won)
     {
         // Chờ một chút để cú bấm lúc đang rơi không vô tình chơi lại ngay.
         if (!canRestart())
@@ -49,8 +52,15 @@ void Game::action()
 
 void Game::Update(float dt)
 {
-    input_.update(!confirmQuit_ && state_ != State::Over);
-    paused_ = state_ != State::Over && !input_.windowActive();
+    input_.update(!confirmQuit_ && state_ != State::Over && state_ != State::Won);
+    paused_ = state_ != State::Over && state_ != State::Won && !input_.windowActive();
+
+    if (!input_.windHeld() || !input_.windowActive() || input_.quitPressed())
+    {
+        clouds_.releaseCloud(heldCloud_);
+        heldCloud_ = -1;
+        pullingWind_ = false;
+    }
 
     if (input_.quitPressed())
     {
@@ -77,7 +87,24 @@ void Game::Update(float dt)
     {
         return;
     }
+    if (input_.restartPressed())
+    {
+        Reset();
+        input_.releaseMouse();
+        return;
+    }
     camera_.orbit(input_.mouseDx(), input_.mouseDy());
+    camera_.update(0.0f, player_.position());
+    windTarget_ = clouds_.aimCloud(camera_.position(), camera_.target(), player_.position(), player_.supportingCloud());
+    if (input_.windHeld() && heldCloud_ == -1)
+    {
+        heldCloud_ = windTarget_;
+    }
+    pullingWind_ = heldCloud_ != -1 && input_.windHeld();
+    if (pullingWind_)
+    {
+        windTarget_ = heldCloud_;
+    }
     if (input_.actionPressed())
     {
         action();
@@ -94,15 +121,36 @@ void Game::Update(float dt)
         physicsTime_ -= Config::PHYSICS_DT;
     }
 
-    landingMarker_.visible = state_ != State::Over &&
+    landingMarker_.visible = state_ != State::Over && state_ != State::Won &&
         player_.predictLanding(camera_.worldDirection(input_.moveX(), input_.moveZ()), clouds_, landingMarker_);
     camera_.update(dt, player_.position());
 }
 
 void Game::step(float dt)
 {
-    clouds_.advance(dt);
-    if (state_ == State::Over)
+    if (pullingWind_)
+    {
+        const Vec3 p = player_.position();
+        const Vec3 c = clouds_.cloudPosition(heldCloud_);
+        const float dx = c.x - p.x;
+        const float dy = c.y - p.y;
+        const float dz = c.z - p.z;
+        if (heldCloud_ == player_.supportingCloud() ||
+            dx * dx + dy * dy + dz * dz > Config::WIND_RANGE * Config::WIND_RANGE)
+        {
+            clouds_.releaseCloud(heldCloud_);
+            heldCloud_ = -1;
+            pullingWind_ = false;
+        }
+        else
+        {
+            const Vec3 forward = camera_.worldDirection(0.0f, 1.0f);
+            const Vec3 anchor = clouds_.cloudPosition(player_.supportingCloud());
+            clouds_.pullCloud(heldCloud_, {anchor.x + forward.x * Config::WIND_PLACE_DISTANCE, c.y,
+                                          anchor.z + forward.z * Config::WIND_PLACE_DISTANCE});
+        }
+    }
+    if (state_ == State::Over || state_ == State::Won)
     {
         if (!canRestart())
         {
@@ -110,6 +158,7 @@ void Game::step(float dt)
         }
         return;
     }
+    clouds_.advance(dt);
 
     const Vec3 direction = camera_.worldDirection(input_.moveX(), input_.moveZ());
     player_.update(dt, direction, clouds_, state_ == State::Play, score_, input_.turn());
@@ -120,6 +169,19 @@ void Game::step(float dt)
         player_.stopAtSea(Config::SEA_Y);
         input_.releaseMouse();
     }
+    if (state_ == State::Play && player_.grounded() &&
+        player_.supportingCloud() == static_cast<int>(Config::WIND_LESSON.size()) - 1)
+    {
+        state_ = State::Won;
+        overTicks_ = 0;
+        input_.releaseMouse();
+    }
+    if (state_ == State::Over || state_ == State::Won)
+    {
+        clouds_.releaseCloud(heldCloud_);
+        heldCloud_ = -1;
+        pullingWind_ = false;
+    }
     clouds_.extend(player_.position().z);
 }
 
@@ -128,6 +190,10 @@ void Game::Render()
     render_.beginFrame(camera_);
     render_.drawWorld(player_, clouds_, camera_, landingMarker_);
     render_.drawHud(score_, player_.position().y);
+    if (state_ == State::Ready || state_ == State::Play)
+    {
+        render_.drawWindLesson(player_, clouds_, windTarget_, pullingWind_);
+    }
     if (paused_)
     {
         render_.drawPausedMessage();
@@ -143,5 +209,9 @@ void Game::Render()
     else if (state_ == State::Over)
     {
         render_.drawOverMessage(score_, canRestart());
+    }
+    else if (state_ == State::Won)
+    {
+        render_.drawWonMessage(canRestart());
     }
 }
