@@ -1,0 +1,385 @@
+{
+ "version": 2,
+ "units": "game units (1 = DxLib unit)",
+ "axes": "DxLib: X right, Y up, Z forward (file space of the .x)",
+ "note": "Model origin = (0,0,0); the highest point of every mesh is at Y = 0 (topY). Place the model at (px, platformTopY, pz). collision.hw/hd are conservative half sizes along X/Z of the solid landable top, centred at (cx, cz) model space.",
+ "clouds": {
+  "cu_humilis": {
+   "file": "cu_humilis.x",
+   "tris": 800,
+   "landable": true,
+   "bounds": {
+    "min": [
+     -1.5,
+     -1.193,
+     -1.2
+    ],
+    "max": [
+     1.5,
+     0.0,
+     1.2
+    ],
+    "size": [
+     3.0,
+     1.193,
+     2.4
+    ]
+   },
+   "topY": 0.0,
+   "collision": {
+    "cx": 0.0,
+    "cz": 0.0,
+    "hw": 0.45,
+    "hd": 0.55,
+    "topY": -0.001,
+    "surfaceY_min": -0.074,
+    "surfaceY_median": -0.018,
+    "tolerance": 0.2,
+    "ellipse_rx": 0.6,
+    "ellipse_rz": 0.75
+   }
+  },
+  "cu_mediocris": {
+   "file": "cu_mediocris.x",
+   "tris": 1056,
+   "landable": true,
+   "bounds": {
+    "min": [
+     -2.6,
+     -2.191,
+     -2.0
+    ],
+    "max": [
+     2.6,
+     0.0,
+     2.0
+    ],
+    "size": [
+     5.2,
+     2.191,
+     4.0
+    ]
+   },
+   "topY": 0.0,
+   "collision": {
+    "cx": 0.0,
+    "cz": 0.0,
+    "hw": 1.35,
+    "hd": 0.7,
+    "topY": -0.005,
+    "surfaceY_min": -0.186,
+    "surfaceY_median": -0.046,
+    "tolerance": 0.25,
+    "ellipse_rx": 1.7,
+    "ellipse_rz": 0.9
+   }
+  },
+  "cu_congestus": {
+   "file": "cu_congestus.x",
+   "tris": 1450,
+   "landable": true,
+   "bounds": {
+    "min": [
+     -2.25,
+     -5.989,
+     -2.0
+    ],
+    "max": [
+     2.25,
+     0.0,
+     2.0
+    ],
+    "size": [
+     4.5,
+     5.989,
+     4.0
+    ]
+   },
+   "topY": 0.0,
+   "collision": {
+    "cx": 0.0,
+    "cz": 0.0,
+    "hw": 0.8,
+    "hd": 0.45,
+    "topY": -0.0,
+    "surfaceY_min": -0.131,
+    "surfaceY_median": -0.012,
+    "tolerance": 0.25,
+    "ellipse_rx": 0.9,
+    "ellipse_rz": 0.5
+   }
+  },
+  "sc_stratocumulus": {
+   "file": "sc_stratocumulus.x",
+   "tris": 782,
+   "landable": true,
+   "bounds": {
+    "min": [
+     -4.5,
+     -1.594,
+     -2.75
+    ],
+    "max": [
+     4.5,
+     0.0,
+     2.75
+    ],
+    "size": [
+     9.0,
+     1.594,
+     5.5
+    ]
+   },
+   "topY": 0.0,
+   "collision": {
+    "cx": 0.0,
+    "cz": 0.0,
+    "hw": 2.9,
+    "hd": 0.95,
+    "topY": -0.007,
+    "surfaceY_min": -0.131,
+    "surfaceY_median": -0.027,
+    "tolerance": 0.25,
+    "ellipse_rx": 3.6,
+    "ellipse_rz": 1.15
+   }
+  },
+  "ac_floccus": {
+   "file": "ac_floccus.x",
+   "tris": 1030,
+   "landable": true,
+   "bounds": {
+    "min": [
+     -2.965,
+     -1.44,
+     -2.01
+    ],
+    "max": [
+     2.965,
+     0.0,
+     2.01
+    ],
+    "size": [
+     5.93,
+     1.44,
+     4.02
+    ]
+   },
+   "topY": 0.0,
+   "collision": {
+    "cx": 0.005,
+    "cz": -0.215,
+    "hw": 0.5,
+    "hd": 0.3,
+    "topY": -0.001,
+    "surfaceY_min": -0.118,
+    "surfaceY_median": -0.02,
+    "tolerance": 0.2,
+    "ellipse_rx": 0.65,
+    "ellipse_rz": 0.4,
+    "note": "covers the main (central, largest) tuft only; the 5 smaller tufts are listed in \"tufts\""
+   },
+   "tufts": [
+    {
+     "cx": 0.005,
+     "cz": -0.215,
+     "hw": 0.5,
+     "hd": 0.25,
+     "topY": -0.001,
+     "main": true
+    },
+    {
+     "cx": -2.245,
+     "cz": 0.785,
+     "hw": 0.2,
+     "hd": 0.25,
+     "topY": -0.124,
+     "main": false
+    },
+    {
+     "cx": 2.305,
+     "cz": 0.835,
+     "hw": 0.15,
+     "hd": 0.2,
+     "topY": -0.074,
+     "main": false
+    },
+    {
+     "cx": -2.145,
+     "cz": -1.465,
+     "hw": 0.15,
+     "hd": 0.2,
+     "topY": -0.077,
+     "main": false
+    },
+    {
+     "cx": 2.255,
+     "cz": -1.415,
+     "hw": 0.15,
+     "hd": 0.2,
+     "topY": -0.051,
+     "main": false
+    },
+    {
+     "cx": 0.105,
+     "cz": 1.585,
+     "hw": 0.1,
+     "hd": 0.15,
+     "topY": -0.129,
+     "main": false
+    }
+   ]
+  },
+  "ac_lenticularis": {
+   "file": "ac_lenticularis.x",
+   "tris": 1144,
+   "landable": true,
+   "bounds": {
+    "min": [
+     -3.25,
+     -1.4,
+     -2.0
+    ],
+    "max": [
+     3.25,
+     0.0,
+     2.0
+    ],
+    "size": [
+     6.5,
+     1.4,
+     4.0
+    ]
+   },
+   "topY": 0.0,
+   "collision": {
+    "cx": 0.0,
+    "cz": 0.0,
+    "hw": 1.2,
+    "hd": 0.85,
+    "topY": -0.0,
+    "surfaceY_min": -0.199,
+    "surfaceY_median": -0.038,
+    "tolerance": 0.25,
+    "ellipse_rx": 1.7,
+    "ellipse_rz": 1.2
+   }
+  },
+  "ci_fibratus": {
+   "file": "ci_fibratus.x",
+   "tris": 576,
+   "landable": false,
+   "bounds": {
+    "min": [
+     -5.0,
+     -0.3,
+     -1.25
+    ],
+    "max": [
+     5.0,
+     0.0,
+     1.25
+    ],
+    "size": [
+     10.0,
+     0.3,
+     2.5
+    ]
+   },
+   "topY": 0.0
+  },
+  "cb_incus": {
+   "file": "cb_incus.x",
+   "tris": 1500,
+   "landable": false,
+   "bounds": {
+    "min": [
+     -6.0,
+     -13.995,
+     -5.0
+    ],
+    "max": [
+     6.0,
+     0.0,
+     5.0
+    ],
+    "size": [
+     12.0,
+     13.995,
+     10.0
+    ]
+   },
+   "topY": 0.0
+  },
+  "ns_virga": {
+   "file": "ns_virga.x",
+   "tris": 1346,
+   "landable": true,
+   "bounds": {
+    "min": [
+     -4.034,
+     -2.499,
+     -2.5
+    ],
+    "max": [
+     4.034,
+     0.0,
+     2.5
+    ],
+    "size": [
+     8.068,
+     2.499,
+     5.0
+    ]
+   },
+   "topY": 0.0,
+   "collision": {
+    "cx": 0.0,
+    "cz": 0.0,
+    "hw": 1.4,
+    "hd": 1.4,
+    "topY": -0.006,
+    "surfaceY_min": -0.035,
+    "surfaceY_median": -0.022,
+    "tolerance": 0.25,
+    "ellipse_rx": 1.95,
+    "ellipse_rz": 1.95
+   }
+  },
+  "nlc_noctilucent": {
+   "file": "nlc_noctilucent.x",
+   "tris": 1192,
+   "landable": true,
+   "bounds": {
+    "min": [
+     -3.538,
+     -0.8,
+     -2.029
+    ],
+    "max": [
+     3.538,
+     0.0,
+     2.029
+    ],
+    "size": [
+     7.075,
+     0.8,
+     4.057
+    ]
+   },
+   "topY": 0.0,
+   "collision": {
+    "cx": 0.0,
+    "cz": 0.0,
+    "hw": 2.5,
+    "hd": 0.9,
+    "topY": -0.007,
+    "surfaceY_min": -0.346,
+    "surfaceY_median": -0.178,
+    "tolerance": 0.35,
+    "ellipse_rx": 2.85,
+    "ellipse_rz": 1.0
+   }
+  }
+ }
+}
